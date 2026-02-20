@@ -1,0 +1,78 @@
+.bankContainer {
+  height: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  transition: border-color 120ms ease, box-shadow 120ms ease, background 120ms ease;
+}
+
+.bankDropTarget {
+  border-color: #2f6feb;
+  box-shadow: 0 0 0 2px rgba(47, 111, 235, 0.2);
+  background: #f8fbff;
+  animation: bankDropPulse 900ms ease-in-out infinite;
+}
+
+.bankHeader {
+  height: var(--container-header-height);
+  padding: 0 var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: 0 0 auto;
+}
+
+.bankBodyVertical {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-2);
+}
+
+.bankBodyHorizontal {
+  flex: 1;
+  min-height: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  display: flex;
+  flex-direction: row;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  align-items: flex-start;
+}
+
+.emptyBank {
+  color: var(--color-muted);
+  font-size: var(--font-size-sm);
+  min-height: var(--tile-height);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  background: #fcfcfc;
+}
+
+@keyframes bankDropPulse {
+  0% {
+    box-shadow: 0 0 0 1px rgba(47, 111, 235, 0.18);
+  }
+
+  50% {
+    box-shadow: 0 0 0 4px rgba(47, 111, 235, 0.25);
+  }
+
+  100% {
+    box-shadow: 0 0 0 1px rgba(47, 111, 235, 0.18);
+  }
+}

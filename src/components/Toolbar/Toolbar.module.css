@@ -1,0 +1,77 @@
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.toolbarLeft,
+.toolbarMiddle,
+.toolbarRight,
+.modeToggle,
+.zoomControls,
+.createButtons {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.toolbarLeft {
+  min-width: 0;
+  flex: 1;
+}
+
+.toolbarMiddle {
+  flex: 0 0 auto;
+}
+
+.toolbarRight {
+  flex: 0 0 auto;
+}
+
+.searchField {
+  width: 100%;
+  max-width: 360px;
+  min-width: 0;
+  height: 30px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  padding: 0 var(--space-2);
+}
+
+.searchClearButton,
+.modeButton,
+.createButton,
+.zoomButton,
+.zoomValueButton {
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  border-radius: var(--radius-sm);
+  height: 30px;
+  padding: 0 var(--space-3);
+  cursor: pointer;
+}
+
+.zoomButton {
+  width: 30px;
+  padding: 0;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.zoomValueButton {
+  min-width: 62px;
+  font-variant-numeric: tabular-nums;
+}
+
+.zoomButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.modeButtonActive {
+  border-color: #2f6feb;
+  background: #f8fbff;
+}

@@ -1,0 +1,93 @@
+# Changelog
+
+## 2026-02-19
+- Scaffolded Vite + React + TypeScript project.
+- Added Zustand and dnd-kit dependencies.
+- Added required `src` directory structure for Phase 1.
+- Replaced starter UI with basic application shell placeholders.
+- Added Phase 1 feature documentation.
+- Added `uuid` and `@types/uuid` for ID generation and typed entity creation.
+- Implemented Phase 1 foundation artifacts: full type system, constants, style tokens/reset/global CSS, and normalized Zustand slices/selectors.
+- Implemented Phase 2 static components: Tile, FatigueIndicator, Container (header/grid), Bank components, and CountBadge.
+- Added grid layout utility (`calculateContainerLayout`) and `useContainerLayout` hook.
+- Replaced placeholder shell usage with static board composition backed by store data.
+- Updated drag context setup with pointer/touch sensors and drag-state wiring.
+- Moved progress documentation files under `/docs` and updated `docs/checklist.md`.
+- Verified current implementation with `npm run lint` and `npm run build`.
+- Fixed a React runtime loop in `AppShell` by replacing non-stable Zustand selector subscriptions with stable slice subscriptions + memoized derivations.
+- Added debug logging utilities and instrumentation across:
+  - drag lifecycle handlers in `src/App.tsx`
+  - board/UI store actions in `src/store/boardSlice.ts` and `src/store/uiSlice.ts`
+  - global store update subscription in `src/store/index.ts`
+  - shell/component render and tile interaction paths
+- Added memoized caches in `src/store/selectors.ts` for derived selector outputs to keep selector snapshots stable.
+- Re-verified with `npm run lint` and `npm run build` after the runtime hotfix.
+- Commenced and completed Phase 3 drag system tasks (T3.1–T3.7).
+- Added `useDragAndDrop` hook with drag lifecycle handlers, over-target tracking, and drop validation/return-to-bank logic.
+- Added custom cursor-point collision detection (`src/utils/collision.ts`) and wired it into `DndContext`.
+- Made tiles draggable (`useDraggable`) and banks/containers droppable (`useDroppable`).
+- Added drag overlay (`TileDragOverlay`) and source/overlay drag visual states.
+- Added drop-target highlighting for containers and banks (valid targets only for bank type constraints).
+- Re-verified Phase 3 changes with `npm run lint` and `npm run build`.
+- Refined Phase 3.5 collision handling to return only the top-priority cursor target.
+- Removed visible Staff/Newcomer text labels from tiles (base tile and drag overlay).
+- Updated container internals to always render separate Staff and Newcomer sections.
+- Container tile rendering now automatically splits dropped tiles by type within each container section.
+- Re-verified with `npm run lint` and `npm run build`.
+- Completed Phase 4 container interaction tasks (T4.1–T4.6).
+- Added board toolbar container creation flow with viewport-centered placement and immediate name-edit mode.
+- Converted board center to scrollable canvas with absolute-positioned containers.
+- Enabled container positioning by dragging header.
+- Added 8-direction resize handles and pointer-driven resize interactions.
+- Added dynamic min-size calculations for split Staff/Newcomer container sections.
+- Applied min-size enforcement during resize via `useContainerResize`.
+- Added auto-grow on tile drop into containers in `moveTile` (container expands if needed).
+- Added container deletion confirm action in header (`x`) using existing tile recovery logic.
+- Added new utility/hooks/components for Phase 4:
+  - `src/utils/containerSizing.ts`
+  - `src/hooks/useContainerDrag.ts`
+  - `src/hooks/useContainerResize.ts`
+  - `src/components/Container/ResizeHandles.tsx`
+- Re-verified with `npm run lint` and `npm run build`.
+- Added Phase 4.7 container edit menu for section toggles (`Staff` / `Newcomers` on/off).
+- Extended container model with section capability flags: `acceptsStaff`, `acceptsNewcomers`.
+- Container rendering now conditionally shows Staff/Newcomers sections based on toggle state.
+- Added drop validation for container section capabilities in both drag handler and store-level move validation.
+- Droppable zones are now disabled when they cannot accept the currently dragged tile type.
+- Toggling a section off auto-relocates existing tiles of that type in the container back to their default banks.
+- Updated dynamic min-size calculations to account for enabled/disabled sections.
+- Re-verified with `npm run lint` and `npm run build`.
+- Completed Phase 5 tile feature set (T5.1–T5.6).
+- Added toolbar tile creation actions (`+ Staff`, `+ Newcomer`) using modal-driven create flow.
+- Added tile info modal for edit/create modes (name, notes, fatigue, delete, zone metadata).
+- Added inline tile name editing (double-click, Enter/blur save, Escape cancel).
+- Added tile delete undo flow with timed snackbar and restore behavior.
+- Added `restoreTile` board action and typed undo snapshots for tile deletion.
+- Added localStorage board persistence/hydration so fatigue and tile edits persist across refresh.
+- Re-verified with `npm run lint` and `npm run build`.
+- Fixed missing Newcomer Bank on persisted boards by normalizing/repairing hydrated state.
+- Storage load now auto-repairs required banks (Staff/Newcomer/Completed) and remaps invalid tile zones safely.
+- Fixed horizontal app-shell overflow by constraining center grid column sizing (`minmax(0, 1fr)`) and adding `min-width: 0` on board layout panes.
+- Completed Phase 6 board features.
+- Added board surface component with scroll + middle-mouse pan support.
+- Added search bar flow with tile highlight/dim search states.
+- Added composed toolbar components (search, mode toggle, create actions).
+- Added setup/command mode toggle wiring and mode persistence to localStorage.
+- Added debounced auto-save hook and moved board persistence writes out of immediate store subscription.
+- Added board mini-map overlay preview showing container footprints and current viewport position while panning/scrolling.
+- Refined mini-map logic to fit around active content + viewport bounds, improving orientation when panned away from populated board areas.
+- Removed live mini-map viewport rectangle for now and kept footprint-only board map.
+- Added viewport rectangle reintroduction as a future task.
+- Removed board map/minimap overlay from active board UI.
+- Moved full board map/minimap behavior to future work queue.
+- Added board zoom controls in toolbar (zoom out, zoom in, reset to 100%).
+- Added scaled board canvas rendering with center-anchored viewport updates on zoom changes.
+- Updated container drag/resize interactions to account for active zoom level.
+- Started Phase 7 polish batch.
+- Added explicit snap/return drop animation timing (`200ms` snap, `250ms` return) via drag overlay configuration.
+- Added animated drop-target highlight pulse for active banks and containers.
+- Added overlap warning styling for intersecting containers.
+- Polished count badges and empty states for banks/container sections.
+- Added responsive side-bank drawer behavior for viewports under `1024px`.
+- Added recovery UX for missing required banks (error card + reload action) instead of blank screen.
+- Re-verified with `npm run lint` and `npm run build`.

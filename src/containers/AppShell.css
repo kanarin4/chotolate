@@ -1,0 +1,156 @@
+.app-shell {
+  display: grid;
+  grid-template-rows: 1fr var(--completed-bank-height);
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.main-layout {
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: var(--sidebar-width) minmax(0, 1fr) var(--sidebar-width);
+  position: relative;
+}
+
+.left-sidebar,
+.right-sidebar,
+.board-area,
+.bottom-bank {
+  padding: var(--space-3);
+}
+
+.left-sidebar {
+  border-right: 1px solid var(--color-border);
+}
+
+.right-sidebar {
+  border-left: 1px solid var(--color-border);
+}
+
+.board-area {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  position: relative;
+}
+
+.bottom-bank {
+  min-height: 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.mobile-bank-controls {
+  display: none;
+}
+
+.mobile-bank-button {
+  height: 30px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  padding: 0 var(--space-3);
+  cursor: pointer;
+}
+
+.mobile-bank-button-active {
+  border-color: #2f6feb;
+  background: #f8fbff;
+}
+
+.drawer-backdrop {
+  display: none;
+}
+
+.app-shell-error {
+  grid-template-rows: 1fr;
+  place-items: center;
+  padding: var(--space-4);
+}
+
+.app-error-card {
+  width: min(480px, 100%);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.app-error-card h2 {
+  margin: 0;
+}
+
+.app-error-card p {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+.app-error-card button {
+  width: fit-content;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  height: 30px;
+  padding: 0 var(--space-3);
+  cursor: pointer;
+}
+
+@media (max-width: 1023px) {
+  .main-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .mobile-bank-controls {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .left-sidebar,
+  .right-sidebar {
+    position: fixed;
+    top: 0;
+    bottom: var(--completed-bank-height);
+    width: min(86vw, 320px);
+    background: var(--color-bg);
+    z-index: 95;
+    overflow: auto;
+    transition: transform 220ms ease;
+    border: 0;
+  }
+
+  .left-sidebar {
+    left: 0;
+    transform: translateX(-105%);
+    border-right: 1px solid var(--color-border);
+  }
+
+  .right-sidebar {
+    right: 0;
+    transform: translateX(105%);
+    border-left: 1px solid var(--color-border);
+  }
+
+  .left-sidebar.drawer-open,
+  .right-sidebar.drawer-open {
+    transform: translateX(0);
+  }
+
+  .drawer-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.22);
+    border: 0;
+    z-index: 90;
+    cursor: pointer;
+  }
+}

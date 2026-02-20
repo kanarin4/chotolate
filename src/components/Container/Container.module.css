@@ -1,0 +1,243 @@
+.container {
+  position: absolute;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  transition: border-color 120ms ease, box-shadow 120ms ease, background 120ms ease;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-width: var(--tile-width);
+}
+
+.containerDropTarget {
+  border-color: #2f6feb;
+  box-shadow: 0 0 0 2px rgba(47, 111, 235, 0.2);
+  background: #f8fbff;
+  animation: dropTargetPulse 900ms ease-in-out infinite;
+}
+
+.containerOverlapWarning {
+  border-color: #f59f00;
+  box-shadow: 0 0 0 2px rgba(245, 159, 0, 0.22);
+  background: #fffaf0;
+}
+
+.containerHeader {
+  height: var(--container-header-height);
+  padding: 0 var(--space-3);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--color-border);
+  cursor: grab;
+  user-select: none;
+  flex: 0 0 auto;
+}
+
+.containerHeader:active {
+  cursor: grabbing;
+}
+
+.containerNameButton {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  color: inherit;
+  cursor: inherit;
+  text-align: left;
+  max-width: 75%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.containerNameInput {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  height: 24px;
+  padding: 0 var(--space-2);
+  width: 70%;
+  min-width: 120px;
+}
+
+.containerHeaderRight {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.editMenuContainer {
+  position: relative;
+}
+
+.editMenuButton {
+  height: 18px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: transparent;
+  cursor: pointer;
+  line-height: 1;
+  font-size: 10px;
+  padding: 0 6px;
+}
+
+.editMenuPanel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 150px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+  padding: var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  z-index: 30;
+}
+
+.editMenuItem {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+}
+
+.deleteContainerButton {
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: transparent;
+  cursor: pointer;
+  line-height: 1;
+  font-size: 11px;
+  padding: 0;
+}
+
+.containerSections {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.tileSection {
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2);
+}
+
+.sectionLabel {
+  font-size: var(--font-size-sm);
+  color: var(--color-muted);
+  margin-bottom: var(--space-2);
+}
+
+.containerGrid {
+  display: grid;
+  gap: var(--grid-gap);
+}
+
+.sectionEmptyState {
+  min-height: var(--tile-height);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-muted);
+  font-size: var(--font-size-sm);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2);
+  background: #fcfcfc;
+}
+
+.resizeHandles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.resizeHandle {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 2px;
+  background: #fff;
+  pointer-events: auto;
+  padding: 0;
+}
+
+.resize_n {
+  top: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  cursor: n-resize;
+}
+
+.resize_ne {
+  top: -5px;
+  right: -5px;
+  cursor: ne-resize;
+}
+
+.resize_e {
+  top: 50%;
+  right: -5px;
+  transform: translateY(-50%);
+  cursor: e-resize;
+}
+
+.resize_se {
+  bottom: -5px;
+  right: -5px;
+  cursor: se-resize;
+}
+
+.resize_s {
+  bottom: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  cursor: s-resize;
+}
+
+.resize_sw {
+  bottom: -5px;
+  left: -5px;
+  cursor: sw-resize;
+}
+
+.resize_w {
+  top: 50%;
+  left: -5px;
+  transform: translateY(-50%);
+  cursor: w-resize;
+}
+
+.resize_nw {
+  top: -5px;
+  left: -5px;
+  cursor: nw-resize;
+}
+
+@keyframes dropTargetPulse {
+  0% {
+    box-shadow: 0 0 0 1px rgba(47, 111, 235, 0.18);
+  }
+
+  50% {
+    box-shadow: 0 0 0 4px rgba(47, 111, 235, 0.25);
+  }
+
+  100% {
+    box-shadow: 0 0 0 1px rgba(47, 111, 235, 0.18);
+  }
+}

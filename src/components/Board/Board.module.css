@@ -1,0 +1,31 @@
+.boardViewport {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: #fafafa;
+  cursor: default;
+}
+
+.boardViewportPanning {
+  cursor: grabbing;
+}
+
+.boardCanvas {
+  position: relative;
+  transform-origin: top left;
+}
+
+.boardEmpty {
+  position: absolute;
+  left: 24px;
+  top: 24px;
+  color: var(--color-muted);
+}
+
+.boardZoomLayer {
+  position: relative;
+}

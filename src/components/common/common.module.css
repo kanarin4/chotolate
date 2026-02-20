@@ -1,0 +1,55 @@
+.countBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 20px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  font-size: var(--font-size-sm);
+  padding: 0 var(--space-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.countBadgeEmpty {
+  color: var(--color-muted);
+  background: #fafafa;
+}
+
+.undoSnackbar {
+  position: fixed;
+  left: 50%;
+  bottom: var(--space-3);
+  transform: translateX(-50%);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  padding: var(--space-2) var(--space-3);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.14);
+  z-index: 110;
+}
+
+.undoActions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.undoButton,
+.dismissButton {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  height: 24px;
+  padding: 0 var(--space-2);
+  cursor: pointer;
+}
+
+.dismissButton {
+  width: 24px;
+  padding: 0;
+}
