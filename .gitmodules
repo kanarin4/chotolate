@@ -1,3 +1,4 @@
 [submodule "docs"]
 	path = docs
 	url = https://github.com/kanarin4/chotolate-docs.git
+	branch = main
