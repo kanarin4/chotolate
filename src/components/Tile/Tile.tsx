@@ -29,6 +29,7 @@ export function Tile({
   const searchMatches = useAppStore(selectSearchMatches)
   const isSearchActive = searchQuery.trim().length > 0
   const isSearchMatch = !isSearchActive || searchMatches.has(tile.id)
+  const supportsFatigue = tile.tileType === TileType.STAFF
 
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: tile.id,
@@ -45,6 +46,10 @@ export function Tile({
   }
 
   const handleFatigueToggle = () => {
+    if (!supportsFatigue) {
+      return
+    }
+
     debugLog('Tile/fatigue-toggle-click', { tileId: tile.id, currentFatigue: tile.fatigueState })
     onFatigueToggle?.(tile.id)
   }
@@ -120,7 +125,9 @@ export function Tile({
       }`}
       {...dragInteractionProps}
     >
-      <FatigueIndicator state={tile.fatigueState} onToggle={handleFatigueToggle} />
+      {supportsFatigue ? (
+        <FatigueIndicator state={tile.fatigueState} onToggle={handleFatigueToggle} />
+      ) : null}
       {isEditingName ? (
         <input
           className={styles.tileNameInput}

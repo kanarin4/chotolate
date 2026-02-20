@@ -141,13 +141,15 @@ const normalizePersistedBoardState = (
       const fatigueState = isFatigueState(tile.fatigueState)
         ? tile.fatigueState
         : FatigueState.GREEN
+      const normalizedFatigueState =
+        tileType === TileType.NEWCOMER ? FatigueState.GREEN : fatigueState
 
       return [
         id,
         {
           ...tile,
           tileType,
-          fatigueState,
+          fatigueState: normalizedFatigueState,
           notes: tile.notes ?? '',
           currentZoneId,
         },
@@ -163,6 +165,23 @@ const normalizePersistedBoardState = (
   }
 }
 
+export function parseImportedBoardState(value: unknown): PersistedBoardState | null {
+  if (isPersistedBoardState(value)) {
+    return normalizePersistedBoardState(value)
+  }
+
+  if (isPersistedBoardEnvelope(value)) {
+    return normalizePersistedBoardState({
+      board: value.board,
+      containers: value.containers,
+      banks: value.banks,
+      tiles: value.tiles,
+    })
+  }
+
+  return null
+}
+
 export function loadPersistedBoardState(): PersistedBoardState | null {
   if (!canAccessLocalStorage()) {
     return null
@@ -176,27 +195,12 @@ export function loadPersistedBoardState(): PersistedBoardState | null {
 
     const parsed: unknown = JSON.parse(raw)
 
-    if (isPersistedBoardState(parsed)) {
-      const normalized = normalizePersistedBoardState(parsed)
+    const normalized = parseImportedBoardState(parsed)
+    if (normalized) {
       debugLog('storage/load-success', {
         storageKey: STORAGE_KEY,
-        version: 'legacy',
-      })
-      return normalized
-    }
-
-    if (isPersistedBoardEnvelope(parsed)) {
-      const envelope = parsed
-      const normalized = normalizePersistedBoardState({
-        board: envelope.board,
-        containers: envelope.containers,
-        banks: envelope.banks,
-        tiles: envelope.tiles,
-      })
-      debugLog('storage/load-success', {
-        storageKey: STORAGE_KEY,
-        version: envelope.version,
-        savedAt: envelope.savedAt,
+        version: isPersistedBoardEnvelope(parsed) ? parsed.version : 'legacy',
+        savedAt: isPersistedBoardEnvelope(parsed) ? parsed.savedAt : undefined,
       })
       return normalized
     }

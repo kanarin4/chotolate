@@ -22,9 +22,11 @@ export function TileDragOverlay({ tile }: TileDragOverlayProps) {
         tile.tileType === TileType.STAFF ? styles.staffTile : styles.newcomerTile
       } ${styles.dragOverlay}`}
     >
-      <span className={`${styles.fatigueIndicator} ${styles[`fatigue_${tile.fatigueState}`]}`}>
-        <span className={styles.fatigueShape}>{SHAPE_BY_FATIGUE[tile.fatigueState]}</span>
-      </span>
+      {tile.tileType === TileType.STAFF ? (
+        <span className={`${styles.fatigueIndicator} ${styles[`fatigue_${tile.fatigueState}`]}`}>
+          <span className={styles.fatigueShape}>{SHAPE_BY_FATIGUE[tile.fatigueState]}</span>
+        </span>
+      ) : null}
       <span className={styles.tileName}>{tile.name}</span>
       <span className={styles.infoButton} aria-hidden="true">
         i

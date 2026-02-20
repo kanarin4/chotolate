@@ -174,7 +174,7 @@ const createInitialBoardState = (): Pick<BoardSlice, 'board' | 'containers' | 'b
       currentZoneId: completedBankId,
       name: 'Rin',
       tileType: TileType.NEWCOMER,
-      fatigueState: FatigueState.RED,
+      fatigueState: FatigueState.GREEN,
       notes: '',
       orderIndex: 0,
       createdAt: timestamp,
@@ -649,6 +649,10 @@ export const createBoardSlice: StateCreator<AppStore, [], [], BoardSlice> = (set
         return state
       }
 
+      if (tile.tileType === TileType.NEWCOMER) {
+        return state
+      }
+
       const nextFatigue =
         tile.fatigueState === FatigueState.GREEN
           ? FatigueState.YELLOW
@@ -675,6 +679,10 @@ export const createBoardSlice: StateCreator<AppStore, [], [], BoardSlice> = (set
     set((state) => {
       const tile = state.tiles[id]
       if (!tile) {
+        return state
+      }
+
+      if (tile.tileType === TileType.NEWCOMER) {
         return state
       }
 

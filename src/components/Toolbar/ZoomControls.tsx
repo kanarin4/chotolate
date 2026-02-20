@@ -1,3 +1,4 @@
+import { UI_CONSTANTS } from '../../utils/constants'
 import styles from './Toolbar.module.css'
 
 type ZoomControlsProps = {
@@ -17,7 +18,7 @@ export function ZoomControls({
   onZoomIn,
   onZoomReset,
 }: ZoomControlsProps) {
-  const zoomPercent = `${Math.round(zoom * 100)}%`
+  const zoomPercent = `${Math.round(zoom * 100) + UI_CONSTANTS.BOARD_ZOOM_LABEL_OFFSET}%`
   const isAtMin = zoom <= minZoom
   const isAtMax = zoom >= maxZoom
 
@@ -37,7 +38,7 @@ export function ZoomControls({
         type="button"
         className={styles.zoomValueButton}
         onClick={onZoomReset}
-        aria-label="Reset zoom to 100%"
+        aria-label="Reset zoom to default"
         title="Reset zoom"
       >
         {zoomPercent}

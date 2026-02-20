@@ -11,6 +11,7 @@ import { useSearch } from '../hooks/useSearch'
 import { useUndo } from '../hooks/useUndo'
 import { useAppStore } from '../store'
 import { LAYOUT_CONSTANTS, UI_CONSTANTS } from '../utils/constants'
+import { parseImportedBoardState } from '../utils/storage'
 import {
   BankType,
   TileType,
@@ -108,6 +109,8 @@ export function AppShell() {
   const deleteTile = useAppStore((state) => state.deleteTile)
   const cycleFatigue = useAppStore((state) => state.cycleFatigue)
   const setFatigue = useAppStore((state) => state.setFatigue)
+  const loadBoard = useAppStore((state) => state.loadBoard)
+  const saveBoard = useAppStore((state) => state.saveBoard)
   const pushUndo = useAppStore((state) => state.pushUndo)
   const openModal = useAppStore((state) => state.openModal)
   const closeModal = useAppStore((state) => state.closeModal)
@@ -306,6 +309,96 @@ export function AppShell() {
     setMode(nextMode)
   }
 
+  const handleExportBoard = () => {
+    const snapshot = saveBoard()
+    if (!snapshot) {
+      window.alert('Unable to export board right now.')
+      return
+    }
+
+    const blob = new Blob([JSON.stringify(snapshot, null, 2)], {
+      type: 'application/json',
+    })
+    const url = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-')
+
+    anchor.href = url
+    anchor.download = `chotolate-board-${stamp}.json`
+    document.body.append(anchor)
+    anchor.click()
+    anchor.remove()
+    URL.revokeObjectURL(url)
+
+    debugLog('AppShell/export-board', {
+      boardId: snapshot.board.id,
+      containerCount: Object.keys(snapshot.containers).length,
+      bankCount: Object.keys(snapshot.banks).length,
+      tileCount: Object.keys(snapshot.tiles).length,
+    })
+  }
+
+  const handleImportBoard = async (file: File) => {
+    try {
+      const raw = await file.text()
+      const parsed: unknown = JSON.parse(raw)
+      const importedBoard = parseImportedBoardState(parsed)
+
+      if (!importedBoard) {
+        window.alert('Invalid board file. Please import a valid Chotolate board JSON.')
+        return
+      }
+
+      const confirmed = window.confirm(
+        `Import "${importedBoard.board.name}" and replace the current board state?`,
+      )
+      if (!confirmed) {
+        return
+      }
+
+      loadBoard(importedBoard)
+
+      debugLog('AppShell/import-board', {
+        boardId: importedBoard.board.id,
+        containerCount: Object.keys(importedBoard.containers).length,
+        bankCount: Object.keys(importedBoard.banks).length,
+        tileCount: Object.keys(importedBoard.tiles).length,
+      })
+    } catch (error) {
+      debugLog('AppShell/import-board-failed', {
+        message: error instanceof Error ? error.message : String(error),
+      })
+      window.alert('Import failed. Please verify the JSON file and try again.')
+    }
+  }
+
+  const handleQuickAddTile = (
+    tileType: typeof TileType.STAFF | typeof TileType.NEWCOMER,
+    name: string,
+  ): boolean => {
+    const trimmedName = name.trim()
+    if (!trimmedName) {
+      return false
+    }
+
+    const id = createTile({
+      name: trimmedName,
+      notes: '',
+      tileType,
+    })
+
+    const isSuccess = Boolean(id)
+
+    debugLog('AppShell/quick-add-tile', {
+      tileType,
+      name: trimmedName,
+      createdTileId: id,
+      success: isSuccess,
+    })
+
+    return isSuccess
+  }
+
   const handleZoomIn = () => {
     setBoardZoom((previous) =>
       clampZoom(roundZoom(previous + UI_CONSTANTS.BOARD_ZOOM_STEP)),
@@ -387,7 +480,11 @@ export function AppShell() {
       name: payload.name,
       notes: payload.notes,
     })
-    setFatigue(payload.tileId, payload.fatigueState)
+
+    const editingTile = tilesRecord[payload.tileId]
+    if (editingTile?.tileType === TileType.STAFF) {
+      setFatigue(payload.tileId, payload.fatigueState)
+    }
 
     debugLog('AppShell/save-tile', payload)
 
@@ -514,6 +611,9 @@ export function AppShell() {
             onZoomOut={handleZoomOut}
             onZoomIn={handleZoomIn}
             onZoomReset={handleZoomReset}
+            onExportBoard={handleExportBoard}
+            onImportBoard={handleImportBoard}
+            onQuickAddTile={handleQuickAddTile}
             onCreateStaff={() => handleOpenCreateTileModal(TileType.STAFF)}
             onCreateNewcomer={() => handleOpenCreateTileModal(TileType.NEWCOMER)}
             onCreateContainer={handleCreateContainer}

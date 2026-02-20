@@ -1,7 +1,8 @@
-import type { BoardMode } from '../../types'
+import type { BoardMode, TileType } from '../../types'
 import { CreateButtons } from './CreateButtons'
 import { ModeToggle } from './ModeToggle'
 import { SearchBar } from './SearchBar'
+import { SettingsMenu } from './SettingsMenu'
 import { ZoomControls } from './ZoomControls'
 import styles from './Toolbar.module.css'
 
@@ -16,6 +17,9 @@ type ToolbarProps = {
   onZoomOut: () => void
   onZoomIn: () => void
   onZoomReset: () => void
+  onExportBoard: () => void
+  onImportBoard: (file: File) => Promise<void> | void
+  onQuickAddTile: (tileType: TileType, name: string) => boolean
   onCreateStaff: () => void
   onCreateNewcomer: () => void
   onCreateContainer: () => void
@@ -32,6 +36,9 @@ export function Toolbar({
   onZoomOut,
   onZoomIn,
   onZoomReset,
+  onExportBoard,
+  onImportBoard,
+  onQuickAddTile,
   onCreateStaff,
   onCreateNewcomer,
   onCreateContainer,
@@ -54,6 +61,11 @@ export function Toolbar({
           onZoomOut={onZoomOut}
           onZoomIn={onZoomIn}
           onZoomReset={onZoomReset}
+        />
+        <SettingsMenu
+          onExportBoard={onExportBoard}
+          onImportBoard={onImportBoard}
+          onQuickAddTile={onQuickAddTile}
         />
         {mode === 'setup' ? (
           <CreateButtons

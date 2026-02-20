@@ -65,6 +65,8 @@ export function TileInfoModal({
     return null
   }
 
+  const fatigueEnabled = effectiveTileType === TileType.STAFF
+
   const title =
     mode === 'create'
       ? `Create ${formatTileTypeLabel(effectiveTileType)} Tile`
@@ -113,7 +115,7 @@ export function TileInfoModal({
       tileId: tile.id,
       name: trimmedName,
       notes,
-      fatigueState,
+      fatigueState: fatigueEnabled ? fatigueState : FatigueState.GREEN,
     })
   }
 
@@ -152,25 +154,27 @@ export function TileInfoModal({
             <span className={styles.staticValue}>{formatTileTypeLabel(effectiveTileType)}</span>
           </label>
 
-          {mode === 'edit' ? (
-            <label className={styles.field}>
-              <span className={styles.fieldLabel}>Fatigue</span>
-              <select
-                className={styles.select}
-                value={fatigueState}
-                onChange={(event) => setFatigueState(event.target.value as FatigueStateValue)}
-              >
-                <option value={FatigueState.GREEN}>Green</option>
-                <option value={FatigueState.YELLOW}>Yellow</option>
-                <option value={FatigueState.RED}>Red</option>
-              </select>
-            </label>
-          ) : (
-            <label className={styles.field}>
-              <span className={styles.fieldLabel}>Fatigue</span>
-              <span className={styles.staticValue}>Green (default)</span>
-            </label>
-          )}
+          {fatigueEnabled ? (
+            mode === 'edit' ? (
+              <label className={styles.field}>
+                <span className={styles.fieldLabel}>Fatigue</span>
+                <select
+                  className={styles.select}
+                  value={fatigueState}
+                  onChange={(event) => setFatigueState(event.target.value as FatigueStateValue)}
+                >
+                  <option value={FatigueState.GREEN}>Green</option>
+                  <option value={FatigueState.YELLOW}>Yellow</option>
+                  <option value={FatigueState.RED}>Red</option>
+                </select>
+              </label>
+            ) : (
+              <label className={styles.field}>
+                <span className={styles.fieldLabel}>Fatigue</span>
+                <span className={styles.staticValue}>Green (default)</span>
+              </label>
+            )
+          ) : null}
 
           <label className={styles.field}>
             <span className={styles.fieldLabel}>Notes</span>
