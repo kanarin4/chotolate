@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { v4 as uuidv4 } from 'uuid'
 import { CompletedBank } from '../components/Bank/CompletedBank'
 import { NewcomerBank } from '../components/Bank/NewcomerBank'
 import { StaffBank } from '../components/Bank/StaffBank'
@@ -9,48 +10,46 @@ import { Toolbar } from '../components/Toolbar/Toolbar'
 import { UndoSnackbar } from '../components/common/UndoSnackbar'
 import { useSearch } from '../hooks/useSearch'
 import { useUndo } from '../hooks/useUndo'
-import { useAppStore } from '../store'
-import { LAYOUT_CONSTANTS, UI_CONSTANTS } from '../utils/constants'
-import { parseImportedBoardState } from '../utils/storage'
+import {
+  selectContainers,
+  selectContainersWithSearchMatches,
+  selectTilesByZone,
+  useAppStore,
+} from '../store'
+import type { NameTemplateType } from '../types'
 import {
   BankType,
+  FatigueState,
   TileType,
   type Bank,
   type BoardMode,
   type Container as ContainerModel,
+  type PersistedBoardState,
   type Tile,
+  type TileType as TileTypeValue,
 } from '../types'
+import { buildCsv, parseCsv } from '../utils/csv'
+import { LAYOUT_CONSTANTS, UI_CONSTANTS } from '../utils/constants'
 import { debugLog } from '../utils/debug'
+import { applyNameTemplate, getDefaultTemplate } from '../utils/naming'
+import {
+  listBoardSnapshots,
+  loadBoardSnapshot,
+  parseImportedBoardState,
+  saveBoardSnapshot,
+} from '../utils/storage'
 import './AppShell.css'
 
-const sortByZIndex = <T extends { zIndex: number }>(items: T[]): T[] =>
-  [...items].sort((a, b) => a.zIndex - b.zIndex)
-
-const groupTilesByZone = (tilesRecord: Record<string, Tile>): Record<string, Tile[]> => {
-  const grouped: Record<string, Tile[]> = {}
-
-  const orderedTiles = Object.values(tilesRecord).sort((a, b) => a.orderIndex - b.orderIndex)
-
-  for (const tile of orderedTiles) {
-    if (!grouped[tile.currentZoneId]) {
-      grouped[tile.currentZoneId] = []
-    }
-
-    grouped[tile.currentZoneId].push(tile)
-  }
-
-  return grouped
-}
-
-const mapBanksByType = (banksRecord: Record<string, Bank>): Partial<Record<BankType, Bank>> => {
-  const mapped: Partial<Record<BankType, Bank>> = {}
-
-  for (const bank of Object.values(banksRecord)) {
-    mapped[bank.bankType] = bank
-  }
-
-  return mapped
-}
+const TILE_CSV_HEADERS = [
+  'id',
+  'name',
+  'tileType',
+  'currentZoneId',
+  'currentZoneLabel',
+  'notes',
+  'fatigueState',
+  'orderIndex',
+] as const
 
 const getBankLabel = (bankType: BankType): string => {
   if (bankType === BankType.STAFF) {
@@ -93,13 +92,57 @@ const containersIntersect = (a: ContainerModel, b: ContainerModel): boolean =>
   a.y < b.y + b.height &&
   a.y + a.height > b.y
 
+const mapBanksByType = (banksRecord: Record<string, Bank>): Partial<Record<BankType, Bank>> => {
+  const mapped: Partial<Record<BankType, Bank>> = {}
+
+  for (const bank of Object.values(banksRecord)) {
+    mapped[bank.bankType] = bank
+  }
+
+  return mapped
+}
+
+const isValidFatigueState = (value: string): value is Tile['fatigueState'] =>
+  value === FatigueState.GREEN || value === FatigueState.YELLOW || value === FatigueState.RED
+
+const resolveTileTypeFromCsv = (value: string): TileTypeValue | null => {
+  const normalized = value.trim().toLowerCase()
+
+  if (normalized === TileType.STAFF) {
+    return TileType.STAFF
+  }
+
+  if (normalized === TileType.NEWCOMER) {
+    return TileType.NEWCOMER
+  }
+
+  return null
+}
+
+const downloadFile = (filename: string, content: string, mimeType: string): void => {
+  const blob = new Blob([content], { type: mimeType })
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+
+  anchor.href = url
+  anchor.download = filename
+  document.body.append(anchor)
+  anchor.click()
+  anchor.remove()
+
+  URL.revokeObjectURL(url)
+}
+
 export function AppShell() {
+  const board = useAppStore((state) => state.board)
   const containersRecord = useAppStore((state) => state.containers)
   const banksRecord = useAppStore((state) => state.banks)
   const tilesRecord = useAppStore((state) => state.tiles)
   const dragState = useAppStore((state) => state.dragState)
   const modalState = useAppStore((state) => state.modalState)
   const mode = useAppStore((state) => state.mode)
+  const nameTemplates = useAppStore((state) => state.nameTemplates)
+  const selectedTileIds = useAppStore((state) => state.selectedTileIds)
 
   const createContainer = useAppStore((state) => state.createContainer)
   const updateContainer = useAppStore((state) => state.updateContainer)
@@ -115,33 +158,76 @@ export function AppShell() {
   const openModal = useAppStore((state) => state.openModal)
   const closeModal = useAppStore((state) => state.closeModal)
   const setSelectedTileId = useAppStore((state) => state.setSelectedTileId)
+  const selectTile = useAppStore((state) => state.selectTile)
+  const clearTileSelection = useAppStore((state) => state.clearTileSelection)
   const setMode = useAppStore((state) => state.setMode)
+  const setNameTemplate = useAppStore((state) => state.setNameTemplate)
 
-  const { searchQuery, setSearchQuery } = useSearch()
+  const containers = useAppStore(selectContainers)
+  const tilesByZone = useAppStore(selectTilesByZone)
+  const containersWithSearchMatches = useAppStore(selectContainersWithSearchMatches)
+
+  const { searchQuery, setSearchQuery, searchMatches, isSearchActive } = useSearch()
   const { activeUndo, remainingMs, handleUndo, dismissActiveUndo } = useUndo()
 
   const boardViewportRef = useRef<HTMLDivElement | null>(null)
   const previousZoomRef = useRef<number>(UI_CONSTANTS.BOARD_ZOOM_DEFAULT)
   const [editingContainerId, setEditingContainerId] = useState<string | null>(null)
-  const [boardZoom, setBoardZoom] = useState<number>(UI_CONSTANTS.BOARD_ZOOM_DEFAULT)
+  const [boardZoom, setBoardZoom] = useState<number>(() => {
+    // Mobile-aware default zoom
+    if (typeof window !== 'undefined' && window.innerWidth < 768) {
+      return 0.55 // More zoomed out for mobile
+    }
+    return UI_CONSTANTS.BOARD_ZOOM_DEFAULT
+  })
   const [isStaffDrawerOpen, setIsStaffDrawerOpen] = useState(false)
   const [isNewcomerDrawerOpen, setIsNewcomerDrawerOpen] = useState(false)
+  const [snapshots, setSnapshots] = useState<Awaited<ReturnType<typeof listBoardSnapshots>>>([])
+  const [createModalDefaultName, setCreateModalDefaultName] = useState('')
 
-  const containers = useMemo(
-    () => sortByZIndex(Object.values(containersRecord)),
-    [containersRecord],
-  )
-
-  const tilesByZone = useMemo(() => groupTilesByZone(tilesRecord), [tilesRecord])
+  const selectedTileIdSet = useMemo(() => new Set(selectedTileIds), [selectedTileIds])
 
   const banksByType = useMemo(() => mapBanksByType(banksRecord), [banksRecord])
   const staffBank = banksByType[BankType.STAFF]
   const newcomerBank = banksByType[BankType.NEWCOMER]
   const completedBank = banksByType[BankType.COMPLETED_NEWCOMER]
+
   const activeTileType = dragState ? tilesRecord[dragState.tileId]?.tileType ?? null : null
   const staffBankTileCount = staffBank ? (tilesByZone[staffBank.id] ?? []).length : 0
   const newcomerBankTileCount = newcomerBank ? (tilesByZone[newcomerBank.id] ?? []).length : 0
   const completedBankTileCount = completedBank ? (tilesByZone[completedBank.id] ?? []).length : 0
+
+  const staffTileCount = useMemo(
+    () => Object.values(tilesRecord).filter((tile) => tile.tileType === TileType.STAFF).length,
+    [tilesRecord],
+  )
+  const newcomerTileCount = useMemo(
+    () => Object.values(tilesRecord).filter((tile) => tile.tileType === TileType.NEWCOMER).length,
+    [tilesRecord],
+  )
+
+  const getDefaultTileName = useCallback(
+    (tileType: TileTypeValue): string => {
+      const templateType = tileType === TileType.STAFF ? 'staff' : 'newcomer'
+      const nextNumber =
+        tileType === TileType.STAFF ? staffTileCount + 1 : newcomerTileCount + 1
+      const template =
+        tileType === TileType.STAFF ? nameTemplates.staff : nameTemplates.newcomer
+
+      return applyNameTemplate(template, nextNumber, getDefaultTemplate(templateType))
+    },
+    [nameTemplates.newcomer, nameTemplates.staff, newcomerTileCount, staffTileCount],
+  )
+
+  const defaultContainerName = useMemo(
+    () =>
+      applyNameTemplate(
+        nameTemplates.container,
+        containers.length + 1,
+        getDefaultTemplate('container'),
+      ),
+    [containers.length, nameTemplates.container],
+  )
 
   const boardCanvasSize = useMemo(() => {
     const farthestRight = containers.reduce(
@@ -179,7 +265,6 @@ export function AppShell() {
 
   const infoTile = modalState?.type === 'tile_info' ? tilesRecord[modalState.entityId] ?? null : null
   const createTileType = modalState?.type === 'tile_create' ? modalState.tileType : null
-
   const tileModalMode = modalState?.type === 'tile_create' ? 'create' : 'edit'
 
   const currentZoneLabel = useMemo(() => {
@@ -189,6 +274,25 @@ export function AppShell() {
 
     return getZoneLabel(infoTile.currentZoneId, containersRecord, banksRecord)
   }, [banksRecord, containersRecord, infoTile])
+
+  const refreshSnapshots = useCallback(async () => {
+    const nextSnapshots = await listBoardSnapshots(12)
+    setSnapshots(nextSnapshots)
+  }, [])
+
+  useEffect(() => {
+    let isCancelled = false
+
+    void listBoardSnapshots(12).then((nextSnapshots) => {
+      if (!isCancelled) {
+        setSnapshots(nextSnapshots)
+      }
+    })
+
+    return () => {
+      isCancelled = true
+    }
+  }, [])
 
   useEffect(() => {
     const viewport = boardViewportRef.current
@@ -213,6 +317,8 @@ export function AppShell() {
       mode,
       boardZoom,
       searchQuery,
+      searchMatchCount: searchMatches.size,
+      selectedTileCount: selectedTileIds.length,
       containers: containers.length,
       overlappingContainers: overlappingContainerIds.size,
       banks: Object.keys(banksRecord).length,
@@ -228,27 +334,28 @@ export function AppShell() {
       isNewcomerDrawerOpen,
       modalType: modalState?.type ?? null,
       hasUndoEntry: Boolean(activeUndo),
+      snapshotCount: snapshots.length,
     })
   }, [
     activeTileType,
     activeUndo,
     banksRecord,
-    completedBank,
-    containersRecord,
-    containers.length,
-    dragState,
-    editingContainerId,
-    modalState,
-    mode,
     boardZoom,
     completedBankTileCount,
+    containers,
+    containersRecord,
+    dragState,
+    editingContainerId,
     isNewcomerDrawerOpen,
     isStaffDrawerOpen,
-    newcomerBank,
+    modalState,
+    mode,
     newcomerBankTileCount,
     overlappingContainerIds,
+    searchMatches,
     searchQuery,
-    staffBank,
+    selectedTileIds.length,
+    snapshots.length,
     staffBankTileCount,
     tilesRecord,
   ])
@@ -272,7 +379,28 @@ export function AppShell() {
     }
   }, [isNewcomerDrawerOpen, isStaffDrawerOpen])
 
-  const handleCreateContainer = () => {
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        clearTileSelection()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [clearTileSelection])
+
+  const handleNameTemplateChange = useCallback(
+    (templateType: NameTemplateType, value: string) => {
+      setNameTemplate(templateType, value)
+    },
+    [setNameTemplate],
+  )
+
+  const handleCreateContainer = useCallback(() => {
     const width = LAYOUT_CONSTANTS.CONTAINER_DEFAULT_WIDTH
     const height = LAYOUT_CONSTANTS.CONTAINER_DEFAULT_HEIGHT
 
@@ -285,7 +413,7 @@ export function AppShell() {
       : 120
 
     const id = createContainer({
-      name: 'New Position',
+      name: defaultContainerName,
       x: Math.max(0, centeredX),
       y: Math.max(0, centeredY),
       width,
@@ -297,38 +425,35 @@ export function AppShell() {
 
     debugLog('AppShell/create-container', {
       id,
+      name: defaultContainerName,
       x: centeredX,
       y: centeredY,
       width,
       height,
       zoom: boardZoom,
     })
-  }
+  }, [boardZoom, bringToFront, createContainer, defaultContainerName])
 
-  const handleModeChange = (nextMode: BoardMode) => {
-    setMode(nextMode)
-  }
+  const handleModeChange = useCallback(
+    (nextMode: BoardMode) => {
+      setMode(nextMode)
+    },
+    [setMode],
+  )
 
-  const handleExportBoard = () => {
+  const handleExportBoard = useCallback(() => {
     const snapshot = saveBoard()
     if (!snapshot) {
       window.alert('Unable to export board right now.')
       return
     }
 
-    const blob = new Blob([JSON.stringify(snapshot, null, 2)], {
-      type: 'application/json',
-    })
-    const url = URL.createObjectURL(blob)
-    const anchor = document.createElement('a')
     const stamp = new Date().toISOString().replace(/[:.]/g, '-')
-
-    anchor.href = url
-    anchor.download = `chotolate-board-${stamp}.json`
-    document.body.append(anchor)
-    anchor.click()
-    anchor.remove()
-    URL.revokeObjectURL(url)
+    downloadFile(
+      `chotolate-board-${stamp}.json`,
+      JSON.stringify(snapshot, null, 2),
+      'application/json',
+    )
 
     debugLog('AppShell/export-board', {
       boardId: snapshot.board.id,
@@ -336,209 +461,490 @@ export function AppShell() {
       bankCount: Object.keys(snapshot.banks).length,
       tileCount: Object.keys(snapshot.tiles).length,
     })
-  }
+  }, [saveBoard])
 
-  const handleImportBoard = async (file: File) => {
-    try {
-      const raw = await file.text()
-      const parsed: unknown = JSON.parse(raw)
-      const importedBoard = parseImportedBoardState(parsed)
+  const handleImportBoard = useCallback(
+    async (file: File) => {
+      try {
+        const raw = await file.text()
+        const parsed: unknown = JSON.parse(raw)
+        const importedBoard = parseImportedBoardState(parsed)
 
-      if (!importedBoard) {
-        window.alert('Invalid board file. Please import a valid Chotolate board JSON.')
+        if (!importedBoard) {
+          window.alert('Invalid board file. Please import a valid Chotolate board JSON.')
+          return
+        }
+
+        const confirmed = window.confirm(
+          `Import "${importedBoard.board.name}" and replace the current board state?`,
+        )
+        if (!confirmed) {
+          return
+        }
+
+        loadBoard(importedBoard)
+        await saveBoardSnapshot(importedBoard, 'manual')
+        await refreshSnapshots()
+
+        debugLog('AppShell/import-board', {
+          boardId: importedBoard.board.id,
+          containerCount: Object.keys(importedBoard.containers).length,
+          bankCount: Object.keys(importedBoard.banks).length,
+          tileCount: Object.keys(importedBoard.tiles).length,
+        })
+      } catch (error) {
+        debugLog('AppShell/import-board-failed', {
+          message: error instanceof Error ? error.message : String(error),
+        })
+        window.alert('Import failed. Please verify the JSON file and try again.')
+      }
+    },
+    [loadBoard, refreshSnapshots],
+  )
+
+  const handleExportCsv = useCallback(() => {
+    const rows = Object.values(tilesRecord)
+      .sort((a, b) => a.orderIndex - b.orderIndex)
+      .map((tile) => ({
+        id: tile.id,
+        name: tile.name,
+        tileType: tile.tileType,
+        currentZoneId: tile.currentZoneId,
+        currentZoneLabel: getZoneLabel(tile.currentZoneId, containersRecord, banksRecord),
+        notes: tile.notes,
+        fatigueState: tile.fatigueState,
+        orderIndex: String(tile.orderIndex),
+      }))
+
+    const csv = buildCsv([...TILE_CSV_HEADERS], rows)
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-')
+    downloadFile(`chotolate-tiles-${stamp}.csv`, csv, 'text/csv;charset=utf-8')
+
+    debugLog('AppShell/export-csv', {
+      rowCount: rows.length,
+    })
+  }, [banksRecord, containersRecord, tilesRecord])
+
+  const handleImportCsv = useCallback(
+    async (file: File) => {
+      if (!board || !staffBank || !newcomerBank) {
+        window.alert('Board is not ready for CSV import.')
         return
       }
 
+      try {
+        const raw = await file.text()
+        const parsed = parseCsv(raw)
+
+        if (parsed.headers.length === 0) {
+          window.alert('CSV appears to be empty.')
+          return
+        }
+
+        const requiredHeaders = ['name', 'tileType']
+        const missingHeaders = requiredHeaders.filter((header) => !parsed.headers.includes(header))
+
+        if (missingHeaders.length > 0) {
+          window.alert(`CSV is missing required headers: ${missingHeaders.join(', ')}`)
+          return
+        }
+
+        const bankLabelById = Object.fromEntries(
+          Object.values(banksRecord).map((bank) => [bank.id, getBankLabel(bank.bankType)]),
+        )
+        const zoneIdByLabel = new Map<string, string>()
+
+        Object.values(containersRecord).forEach((container) => {
+          zoneIdByLabel.set(container.name.trim().toLowerCase(), container.id)
+        })
+        Object.entries(bankLabelById).forEach(([zoneId, label]) => {
+          zoneIdByLabel.set(label.trim().toLowerCase(), zoneId)
+        })
+
+        const zoneOrder = new Map<string, number>()
+        const nextTiles: Record<string, Tile> = {}
+        const errors: string[] = []
+        const timestamp = new Date().toISOString()
+
+        parsed.rows.forEach((row, rowIndex) => {
+          const lineNumber = rowIndex + 2
+          const name = (row.name ?? '').trim()
+          const parsedTileType = resolveTileTypeFromCsv(row.tileType ?? '')
+
+          if (!name) {
+            errors.push(`Line ${lineNumber}: missing name`)
+            return
+          }
+
+          if (!parsedTileType) {
+            errors.push(`Line ${lineNumber}: invalid tileType "${row.tileType ?? ''}"`)
+            return
+          }
+
+          const zoneIdFromCsv = (row.currentZoneId ?? '').trim()
+          const zoneLabelFromCsv = (row.currentZoneLabel ?? '').trim().toLowerCase()
+
+          let resolvedZoneId = zoneIdFromCsv
+
+          if (!resolvedZoneId && zoneLabelFromCsv) {
+            resolvedZoneId = zoneIdByLabel.get(zoneLabelFromCsv) ?? ''
+          }
+
+          if (!resolvedZoneId || (!containersRecord[resolvedZoneId] && !banksRecord[resolvedZoneId])) {
+            resolvedZoneId = parsedTileType === TileType.STAFF ? staffBank.id : newcomerBank.id
+          }
+
+          const targetBank = banksRecord[resolvedZoneId]
+          const targetContainer = containersRecord[resolvedZoneId]
+
+          if (targetBank) {
+            const isInvalidBankForType =
+              (parsedTileType === TileType.STAFF && targetBank.bankType !== BankType.STAFF) ||
+              (parsedTileType === TileType.NEWCOMER &&
+                targetBank.bankType !== BankType.NEWCOMER &&
+                targetBank.bankType !== BankType.COMPLETED_NEWCOMER)
+
+            if (isInvalidBankForType) {
+              resolvedZoneId = parsedTileType === TileType.STAFF ? staffBank.id : newcomerBank.id
+            }
+          }
+
+          if (targetContainer) {
+            const isInvalidContainerForType =
+              (parsedTileType === TileType.STAFF && !targetContainer.acceptsStaff) ||
+              (parsedTileType === TileType.NEWCOMER && !targetContainer.acceptsNewcomers)
+
+            if (isInvalidContainerForType) {
+              resolvedZoneId = parsedTileType === TileType.STAFF ? staffBank.id : newcomerBank.id
+            }
+          }
+
+          const fatigueRaw = (row.fatigueState ?? '').toLowerCase()
+          const normalizedFatigue: Tile['fatigueState'] = isValidFatigueState(fatigueRaw)
+            ? fatigueRaw
+            : FatigueState.GREEN
+
+          const nextOrder = zoneOrder.get(resolvedZoneId) ?? 0
+          zoneOrder.set(resolvedZoneId, nextOrder + 1)
+
+          const requestedId = (row.id ?? '').trim()
+          const tileId = requestedId && !nextTiles[requestedId] ? requestedId : uuidv4()
+
+          nextTiles[tileId] = {
+            id: tileId,
+            boardId: board.id,
+            currentZoneId: resolvedZoneId,
+            name,
+            tileType: parsedTileType,
+            fatigueState: parsedTileType === TileType.NEWCOMER ? FatigueState.GREEN : normalizedFatigue,
+            notes: row.notes ?? '',
+            orderIndex: nextOrder,
+            createdAt: timestamp,
+            updatedAt: timestamp,
+          }
+        })
+
+        if (Object.keys(nextTiles).length === 0) {
+          window.alert(
+            `CSV import did not produce valid tiles.${errors.length > 0 ? `\n\n${errors.slice(0, 8).join('\n')}` : ''}`,
+          )
+          return
+        }
+
+        const errorMessage =
+          errors.length > 0
+            ? `\n\n${errors.length} row(s) were skipped:\n${errors.slice(0, 8).join('\n')}`
+            : ''
+
+        const confirmed = window.confirm(
+          `Replace existing tiles with ${Object.keys(nextTiles).length} imported tile(s)?${errorMessage}`,
+        )
+        if (!confirmed) {
+          return
+        }
+
+        const nextState: PersistedBoardState = {
+          board: {
+            ...board,
+            updatedAt: timestamp,
+          },
+          containers: containersRecord,
+          banks: banksRecord,
+          tiles: nextTiles,
+        }
+
+        loadBoard(nextState)
+        await saveBoardSnapshot(nextState, 'manual')
+        await refreshSnapshots()
+
+        debugLog('AppShell/import-csv-success', {
+          importedTiles: Object.keys(nextTiles).length,
+          skippedRows: errors.length,
+        })
+      } catch (error) {
+        debugLog('AppShell/import-csv-failed', {
+          message: error instanceof Error ? error.message : String(error),
+        })
+        window.alert('CSV import failed. Please verify the file and try again.')
+      }
+    },
+    [
+      banksRecord,
+      board,
+      containersRecord,
+      loadBoard,
+      newcomerBank,
+      refreshSnapshots,
+      staffBank,
+    ],
+  )
+
+  const handleQuickAddTile = useCallback(
+    (tileType: TileTypeValue, name: string): boolean => {
+      const trimmedName = name.trim()
+      if (!trimmedName) {
+        return false
+      }
+
+      const id = createTile({
+        name: trimmedName,
+        notes: '',
+        tileType,
+      })
+
+      const isSuccess = Boolean(id)
+
+      debugLog('AppShell/quick-add-tile', {
+        tileType,
+        name: trimmedName,
+        createdTileId: id,
+        success: isSuccess,
+      })
+
+      return isSuccess
+    },
+    [createTile],
+  )
+
+  const handleCaptureSnapshot = useCallback(async () => {
+    const snapshot = saveBoard()
+    if (!snapshot) {
+      window.alert('Unable to save snapshot right now.')
+      return
+    }
+
+    await saveBoardSnapshot(snapshot, 'manual')
+    await refreshSnapshots()
+
+    debugLog('AppShell/capture-snapshot', {
+      boardId: snapshot.board.id,
+      tileCount: Object.keys(snapshot.tiles).length,
+    })
+  }, [refreshSnapshots, saveBoard])
+
+  const handleRestoreSnapshot = useCallback(
+    async (snapshotId: string) => {
+      const snapshot = await loadBoardSnapshot(snapshotId)
+      if (!snapshot) {
+        window.alert('Snapshot could not be loaded.')
+        return
+      }
+
+      const snapshotSummary = snapshots.find((entry) => entry.id === snapshotId)
+      const snapshotLabel = snapshotSummary
+        ? new Date(snapshotSummary.savedAt).toLocaleString()
+        : 'the selected time'
+
       const confirmed = window.confirm(
-        `Import "${importedBoard.board.name}" and replace the current board state?`,
+        `Restore snapshot from ${snapshotLabel} and replace current board state?`,
       )
       if (!confirmed) {
         return
       }
 
-      loadBoard(importedBoard)
+      loadBoard(snapshot)
+      await refreshSnapshots()
 
-      debugLog('AppShell/import-board', {
-        boardId: importedBoard.board.id,
-        containerCount: Object.keys(importedBoard.containers).length,
-        bankCount: Object.keys(importedBoard.banks).length,
-        tileCount: Object.keys(importedBoard.tiles).length,
+      debugLog('AppShell/restore-snapshot', {
+        snapshotId,
+        tileCount: Object.keys(snapshot.tiles).length,
       })
-    } catch (error) {
-      debugLog('AppShell/import-board-failed', {
-        message: error instanceof Error ? error.message : String(error),
-      })
-      window.alert('Import failed. Please verify the JSON file and try again.')
-    }
-  }
+    },
+    [loadBoard, refreshSnapshots, snapshots],
+  )
 
-  const handleQuickAddTile = (
-    tileType: typeof TileType.STAFF | typeof TileType.NEWCOMER,
-    name: string,
-  ): boolean => {
-    const trimmedName = name.trim()
-    if (!trimmedName) {
-      return false
-    }
+  const handleZoomIn = useCallback(() => {
+    setBoardZoom((previous) => clampZoom(roundZoom(previous + UI_CONSTANTS.BOARD_ZOOM_STEP)))
+  }, [])
 
-    const id = createTile({
-      name: trimmedName,
-      notes: '',
-      tileType,
-    })
+  const handleZoomOut = useCallback(() => {
+    setBoardZoom((previous) => clampZoom(roundZoom(previous - UI_CONSTANTS.BOARD_ZOOM_STEP)))
+  }, [])
 
-    const isSuccess = Boolean(id)
-
-    debugLog('AppShell/quick-add-tile', {
-      tileType,
-      name: trimmedName,
-      createdTileId: id,
-      success: isSuccess,
-    })
-
-    return isSuccess
-  }
-
-  const handleZoomIn = () => {
-    setBoardZoom((previous) =>
-      clampZoom(roundZoom(previous + UI_CONSTANTS.BOARD_ZOOM_STEP)),
-    )
-  }
-
-  const handleZoomOut = () => {
-    setBoardZoom((previous) =>
-      clampZoom(roundZoom(previous - UI_CONSTANTS.BOARD_ZOOM_STEP)),
-    )
-  }
-
-  const handleZoomReset = () => {
+  const handleZoomReset = useCallback(() => {
     setBoardZoom(UI_CONSTANTS.BOARD_ZOOM_DEFAULT)
-  }
+  }, [])
 
-  const handleToggleStaffDrawer = () => {
+  const handleToggleStaffDrawer = useCallback(() => {
     setIsNewcomerDrawerOpen(false)
     setIsStaffDrawerOpen((isOpen) => !isOpen)
-  }
+  }, [])
 
-  const handleToggleNewcomerDrawer = () => {
+  const handleToggleNewcomerDrawer = useCallback(() => {
     setIsStaffDrawerOpen(false)
     setIsNewcomerDrawerOpen((isOpen) => !isOpen)
-  }
+  }, [])
 
-  const handleCloseDrawers = () => {
+  const handleCloseDrawers = useCallback(() => {
     setIsStaffDrawerOpen(false)
     setIsNewcomerDrawerOpen(false)
-  }
+  }, [])
 
-  const handleOpenCreateTileModal = (tileType: typeof TileType.STAFF | typeof TileType.NEWCOMER) => {
-    debugLog('AppShell/open-create-tile-modal', { tileType })
-    setSelectedTileId(null)
-    openModal({
-      type: 'tile_create',
-      tileType,
-    })
-  }
+  const handleOpenCreateTileModal = useCallback(
+    (tileType: TileTypeValue) => {
+      const defaultName = getDefaultTileName(tileType)
 
-  const handleOpenTileInfo = (tileId: string) => {
-    debugLog('AppShell/open-tile-info', { tileId })
-    setSelectedTileId(tileId)
-    openModal({
-      type: 'tile_info',
-      entityId: tileId,
-    })
-  }
+      debugLog('AppShell/open-create-tile-modal', { tileType, defaultName })
+      clearTileSelection()
+      setCreateModalDefaultName(defaultName)
+      openModal({
+        type: 'tile_create',
+        tileType,
+      })
+    },
+    [clearTileSelection, getDefaultTileName, openModal],
+  )
 
-  const handleCloseTileModal = () => {
+  const handleOpenTileInfo = useCallback(
+    (tileId: string) => {
+      debugLog('AppShell/open-tile-info', { tileId })
+      setSelectedTileId(tileId)
+      openModal({
+        type: 'tile_info',
+        entityId: tileId,
+      })
+    },
+    [openModal, setSelectedTileId],
+  )
+
+  const handleCloseTileModal = useCallback(() => {
     debugLog('AppShell/close-tile-modal')
     closeModal()
-    setSelectedTileId(null)
-  }
+    clearTileSelection()
+  }, [clearTileSelection, closeModal])
 
-  const handleCreateTile = (payload: {
-    name: string
-    notes: string
-    tileType: typeof TileType.STAFF | typeof TileType.NEWCOMER
-  }) => {
-    const id = createTile(payload)
+  const handleCreateTile = useCallback(
+    (payload: {
+      name: string
+      notes: string
+      tileType: TileTypeValue
+    }) => {
+      const id = createTile(payload)
 
-    debugLog('AppShell/create-tile', {
-      createdTileId: id,
-      tileType: payload.tileType,
-      name: payload.name,
-    })
+      debugLog('AppShell/create-tile', {
+        createdTileId: id,
+        tileType: payload.tileType,
+        name: payload.name,
+      })
 
-    closeModal()
-  }
+      closeModal()
+      clearTileSelection()
+    },
+    [clearTileSelection, closeModal, createTile],
+  )
 
-  const handleSaveTile = (payload: {
-    tileId: string
-    name: string
-    notes: string
-    fatigueState: Tile['fatigueState']
-  }) => {
-    updateTile(payload.tileId, {
-      name: payload.name,
-      notes: payload.notes,
-    })
+  const handleSaveTile = useCallback(
+    (payload: {
+      tileId: string
+      name: string
+      notes: string
+      fatigueState: Tile['fatigueState']
+    }) => {
+      updateTile(payload.tileId, {
+        name: payload.name,
+        notes: payload.notes,
+      })
 
-    const editingTile = tilesRecord[payload.tileId]
-    if (editingTile?.tileType === TileType.STAFF) {
-      setFatigue(payload.tileId, payload.fatigueState)
-    }
+      const editingTile = tilesRecord[payload.tileId]
+      if (editingTile?.tileType === TileType.STAFF) {
+        setFatigue(payload.tileId, payload.fatigueState)
+      }
 
-    debugLog('AppShell/save-tile', payload)
+      debugLog('AppShell/save-tile', payload)
 
-    closeModal()
-    setSelectedTileId(null)
-  }
+      closeModal()
+      clearTileSelection()
+    },
+    [clearTileSelection, closeModal, setFatigue, tilesRecord, updateTile],
+  )
 
-  const handleDeleteTile = (tileId: string) => {
-    const tile = tilesRecord[tileId]
-    if (!tile) {
-      return
-    }
+  const handleDeleteTile = useCallback(
+    (tileId: string) => {
+      const tile = tilesRecord[tileId]
+      if (!tile) {
+        return
+      }
 
-    const confirmed = window.confirm(`Delete ${tile.name}? You can undo for 10 seconds.`)
-    if (!confirmed) {
-      return
-    }
+      const confirmed = window.confirm(`Delete ${tile.name}? You can undo for 10 seconds.`)
+      if (!confirmed) {
+        return
+      }
 
-    pushUndo({
-      type: 'tile_delete',
-      timestamp: Date.now(),
-      snapshot: {
-        tile,
-      },
-    })
+      pushUndo({
+        type: 'tile_delete',
+        timestamp: Date.now(),
+        snapshot: {
+          tile,
+        },
+      })
 
-    deleteTile(tileId)
-    closeModal()
-    setSelectedTileId(null)
+      deleteTile(tileId)
+      closeModal()
+      clearTileSelection()
 
-    debugLog('AppShell/delete-tile', {
-      tileId,
-      tileName: tile.name,
-      undoWindowMs: 10_000,
-    })
-  }
+      debugLog('AppShell/delete-tile', {
+        tileId,
+        tileName: tile.name,
+        undoWindowMs: 10_000,
+      })
+    },
+    [clearTileSelection, closeModal, deleteTile, pushUndo, tilesRecord],
+  )
 
-  const handleTileNameCommit = (tileId: string, nextName: string) => {
-    updateTile(tileId, { name: nextName })
-    debugLog('AppShell/inline-tile-name-commit', { tileId, nextName })
-  }
+  const handleTileNameCommit = useCallback(
+    (tileId: string, nextName: string) => {
+      updateTile(tileId, { name: nextName })
+      debugLog('AppShell/inline-tile-name-commit', { tileId, nextName })
+    },
+    [updateTile],
+  )
 
-  const handleStartEditName = (containerId: string) => {
+  const handleStartEditName = useCallback((containerId: string) => {
     setEditingContainerId(containerId)
-  }
+  }, [])
 
-  const handleCommitEditName = (containerId: string, nextName: string) => {
-    updateContainer(containerId, { name: nextName || 'New Position' })
-    setEditingContainerId((currentId) => (currentId === containerId ? null : currentId))
-  }
+  const handleCommitEditName = useCallback(
+    (containerId: string, nextName: string) => {
+      updateContainer(containerId, { name: nextName || 'New Position' })
+      setEditingContainerId((currentId) => (currentId === containerId ? null : currentId))
+    },
+    [updateContainer],
+  )
 
-  const handleCancelEditName = () => {
+  const handleCancelEditName = useCallback(() => {
     setEditingContainerId(null)
-  }
+  }, [])
+
+  const handleTileSelect = useCallback(
+    (tileId: string, additive: boolean) => {
+      selectTile(tileId, additive)
+    },
+    [selectTile],
+  )
+
+  const handleBoardBackgroundPointerDown = useCallback(() => {
+    clearTileSelection()
+  }, [clearTileSelection])
 
   if (!staffBank || !newcomerBank || !completedBank) {
     debugLog('AppShell/missing-required-banks', {
@@ -576,30 +982,18 @@ export function AppShell() {
             zoneId={staffBank.id}
             tiles={tilesByZone[staffBank.id] ?? []}
             activeTileType={activeTileType}
+            selectedTileIds={selectedTileIdSet}
+            searchMatches={searchMatches}
+            isSearchActive={isSearchActive}
             onFatigueToggle={cycleFatigue}
             onTileInfoClick={handleOpenTileInfo}
             onTileNameCommit={handleTileNameCommit}
+            onTileSelect={handleTileSelect}
+            onClose={handleCloseDrawers}
           />
         </aside>
 
         <main className="board-area">
-          <div className="mobile-bank-controls">
-            <button
-              type="button"
-              className={`mobile-bank-button ${isStaffDrawerOpen ? 'mobile-bank-button-active' : ''}`}
-              onClick={handleToggleStaffDrawer}
-            >
-              Staff ({staffBankTileCount})
-            </button>
-            <button
-              type="button"
-              className={`mobile-bank-button ${isNewcomerDrawerOpen ? 'mobile-bank-button-active' : ''}`}
-              onClick={handleToggleNewcomerDrawer}
-            >
-              Newcomers ({newcomerBankTileCount})
-            </button>
-          </div>
-
           <Toolbar
             mode={mode}
             searchQuery={searchQuery}
@@ -611,12 +1005,29 @@ export function AppShell() {
             onZoomOut={handleZoomOut}
             onZoomIn={handleZoomIn}
             onZoomReset={handleZoomReset}
+            selectedCount={selectedTileIds.length}
+            onClearSelection={clearTileSelection}
             onExportBoard={handleExportBoard}
             onImportBoard={handleImportBoard}
+            onExportCsv={handleExportCsv}
+            onImportCsv={handleImportCsv}
             onQuickAddTile={handleQuickAddTile}
+            getDefaultTileName={getDefaultTileName}
+            nameTemplates={nameTemplates}
+            onNameTemplateChange={handleNameTemplateChange}
+            snapshots={snapshots}
+            onRefreshSnapshots={refreshSnapshots}
+            onRestoreSnapshot={handleRestoreSnapshot}
+            onCaptureSnapshot={handleCaptureSnapshot}
             onCreateStaff={() => handleOpenCreateTileModal(TileType.STAFF)}
             onCreateNewcomer={() => handleOpenCreateTileModal(TileType.NEWCOMER)}
             onCreateContainer={handleCreateContainer}
+            isStaffDrawerOpen={isStaffDrawerOpen}
+            onToggleStaffDrawer={handleToggleStaffDrawer}
+            staffBankTileCount={staffBankTileCount}
+            isNewcomerDrawerOpen={isNewcomerDrawerOpen}
+            onToggleNewcomerDrawer={handleToggleNewcomerDrawer}
+            newcomerBankTileCount={newcomerBankTileCount}
           />
 
           <Board
@@ -626,6 +1037,7 @@ export function AppShell() {
             zoom={boardZoom}
             isEmpty={containers.length === 0}
             emptyLabel="No containers yet"
+            onBackgroundPointerDown={handleBoardBackgroundPointerDown}
           >
             {containers.map((container) => (
               <Container
@@ -634,6 +1046,10 @@ export function AppShell() {
                 tiles={tilesByZone[container.id] ?? []}
                 zoom={boardZoom}
                 isOverlapping={overlappingContainerIds.has(container.id)}
+                hasSearchMatch={containersWithSearchMatches.has(container.id)}
+                isSearchActive={isSearchActive}
+                selectedTileIds={selectedTileIdSet}
+                searchMatches={searchMatches}
                 activeTileType={activeTileType}
                 isEditingName={editingContainerId === container.id}
                 onStartEditName={handleStartEditName}
@@ -642,6 +1058,7 @@ export function AppShell() {
                 onFatigueToggle={cycleFatigue}
                 onTileInfoClick={handleOpenTileInfo}
                 onTileNameCommit={handleTileNameCommit}
+                onTileSelect={handleTileSelect}
               />
             ))}
           </Board>
@@ -652,9 +1069,14 @@ export function AppShell() {
             zoneId={newcomerBank.id}
             tiles={tilesByZone[newcomerBank.id] ?? []}
             activeTileType={activeTileType}
+            selectedTileIds={selectedTileIdSet}
+            searchMatches={searchMatches}
+            isSearchActive={isSearchActive}
             onFatigueToggle={cycleFatigue}
             onTileInfoClick={handleOpenTileInfo}
             onTileNameCommit={handleTileNameCommit}
+            onTileSelect={handleTileSelect}
+            onClose={handleCloseDrawers}
           />
         </aside>
       </div>
@@ -664,18 +1086,28 @@ export function AppShell() {
           zoneId={completedBank.id}
           tiles={tilesByZone[completedBank.id] ?? []}
           activeTileType={activeTileType}
+          selectedTileIds={selectedTileIdSet}
+          searchMatches={searchMatches}
+          isSearchActive={isSearchActive}
           onFatigueToggle={cycleFatigue}
           onTileInfoClick={handleOpenTileInfo}
           onTileNameCommit={handleTileNameCommit}
+          onTileSelect={handleTileSelect}
+          onClose={handleCloseDrawers}
         />
       </footer>
 
       {modalState?.type === 'tile_create' || modalState?.type === 'tile_info' ? (
         <TileInfoModal
-          key={modalState.type === 'tile_info' ? `info-${modalState.entityId}` : `create-${modalState.tileType}`}
+          key={
+            modalState.type === 'tile_info'
+              ? `info-${modalState.entityId}`
+              : `create-${modalState.tileType}-${createModalDefaultName}`
+          }
           mode={tileModalMode}
           tile={infoTile}
           createTileType={createTileType}
+          defaultCreateName={createModalDefaultName}
           currentZoneLabel={currentZoneLabel}
           onClose={handleCloseTileModal}
           onCreateTile={handleCreateTile}

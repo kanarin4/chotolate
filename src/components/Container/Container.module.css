@@ -17,6 +17,15 @@
   animation: dropTargetPulse 900ms ease-in-out infinite;
 }
 
+.containerSearchMatch {
+  border-color: #2f6feb;
+  box-shadow: 0 0 0 2px rgba(47, 111, 235, 0.16);
+}
+
+.containerSearchDimmed {
+  opacity: 0.82;
+}
+
 .containerOverlapWarning {
   border-color: #f59f00;
   box-shadow: 0 0 0 2px rgba(245, 159, 0, 0.22);
@@ -66,6 +75,23 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
+}
+
+.typeCountGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.typeCount {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.typeCountLabel {
+  font-size: 11px;
+  color: var(--color-muted);
 }
 
 .editMenuContainer {
@@ -167,64 +193,82 @@
 
 .resizeHandle {
   position: absolute;
+  width: 24px;
+  height: 24px;
+  background: transparent;
+  pointer-events: auto;
+  padding: 0;
+  border: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.resizeHandle::after {
+  content: "";
   width: 10px;
   height: 10px;
   border: 1px solid var(--color-border);
   border-radius: 2px;
   background: #fff;
-  pointer-events: auto;
-  padding: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.resizeHandle:hover::after {
+  border-color: #2f6feb;
+  background: #f0f7ff;
 }
 
 .resize_n {
-  top: -5px;
+  top: -12px;
   left: 50%;
   transform: translateX(-50%);
   cursor: n-resize;
 }
 
 .resize_ne {
-  top: -5px;
-  right: -5px;
+  top: -12px;
+  right: -12px;
   cursor: ne-resize;
 }
 
 .resize_e {
   top: 50%;
-  right: -5px;
+  right: -12px;
   transform: translateY(-50%);
   cursor: e-resize;
 }
 
 .resize_se {
-  bottom: -5px;
-  right: -5px;
+  bottom: -12px;
+  right: -12px;
   cursor: se-resize;
 }
 
 .resize_s {
-  bottom: -5px;
+  bottom: -12px;
   left: 50%;
   transform: translateX(-50%);
   cursor: s-resize;
 }
 
 .resize_sw {
-  bottom: -5px;
-  left: -5px;
+  bottom: -12px;
+  left: -12px;
   cursor: sw-resize;
 }
 
 .resize_w {
   top: 50%;
-  left: -5px;
+  left: -12px;
   transform: translateY(-50%);
   cursor: w-resize;
 }
 
 .resize_nw {
-  top: -5px;
-  left: -5px;
+  top: -12px;
+  left: -12px;
   cursor: nw-resize;
 }
 

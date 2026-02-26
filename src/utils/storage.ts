@@ -6,10 +6,11 @@ import {
   type Bank,
   type BoardMode,
   type Container,
+  type NameTemplates,
   type PersistedBoardState,
   type Tile,
 } from '../types'
-import { STORAGE_CONSTANTS } from './constants'
+import { DEFAULT_NAME_TEMPLATES, STORAGE_CONSTANTS } from './constants'
 import { debugError, debugLog } from './debug'
 
 interface PersistedBoardEnvelope extends PersistedBoardState {
@@ -17,13 +18,39 @@ interface PersistedBoardEnvelope extends PersistedBoardState {
   savedAt: string
 }
 
+export interface BoardSnapshotSummary {
+  id: string
+  savedAt: string
+  source: 'autosave' | 'manual' | 'lifecycle'
+  containerCount: number
+  bankCount: number
+  tileCount: number
+}
+
+interface BoardSnapshotRecord {
+  id: string
+  savedAt: string
+  savedAtMs: number
+  source: 'autosave' | 'manual' | 'lifecycle'
+  state: PersistedBoardState
+}
+
 const STORAGE_KEY = `${STORAGE_CONSTANTS.KEY_PREFIX}:v${STORAGE_CONSTANTS.VERSION}`
 const UI_MODE_STORAGE_KEY = `${STORAGE_CONSTANTS.KEY_PREFIX}:ui:v${STORAGE_CONSTANTS.VERSION}`
+const NAME_TEMPLATES_STORAGE_KEY = `${STORAGE_CONSTANTS.KEY_PREFIX}:name-templates:v${STORAGE_CONSTANTS.VERSION}`
+const SNAPSHOT_STORE_INDEX = 'savedAtMs'
 
 const canAccessLocalStorage = (): boolean => typeof window !== 'undefined' && 'localStorage' in window
+const canAccessIndexedDb = (): boolean => typeof window !== 'undefined' && 'indexedDB' in window
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null
+
+const isNameTemplates = (value: unknown): value is NameTemplates =>
+  isRecord(value) &&
+  typeof value.staff === 'string' &&
+  typeof value.newcomer === 'string' &&
+  typeof value.container === 'string'
 
 const isPersistedBoardState = (value: unknown): value is PersistedBoardState => {
   if (!isRecord(value)) {
@@ -182,6 +209,197 @@ export function parseImportedBoardState(value: unknown): PersistedBoardState | n
   return null
 }
 
+const createSnapshotSummary = (record: BoardSnapshotRecord): BoardSnapshotSummary => ({
+  id: record.id,
+  savedAt: record.savedAt,
+  source: record.source,
+  containerCount: Object.keys(record.state.containers).length,
+  bankCount: Object.keys(record.state.banks).length,
+  tileCount: Object.keys(record.state.tiles).length,
+})
+
+const waitForTransaction = (transaction: IDBTransaction): Promise<void> =>
+  new Promise((resolve, reject) => {
+    transaction.oncomplete = () => {
+      resolve()
+    }
+    transaction.onerror = () => {
+      reject(transaction.error ?? new Error('IndexedDB transaction failed'))
+    }
+    transaction.onabort = () => {
+      reject(transaction.error ?? new Error('IndexedDB transaction aborted'))
+    }
+  })
+
+const requestToPromise = <T>(request: IDBRequest<T>): Promise<T> =>
+  new Promise((resolve, reject) => {
+    request.onsuccess = () => {
+      resolve(request.result)
+    }
+    request.onerror = () => {
+      reject(request.error ?? new Error('IndexedDB request failed'))
+    }
+  })
+
+const openSnapshotsDatabase = (): Promise<IDBDatabase> =>
+  new Promise((resolve, reject) => {
+    if (!canAccessIndexedDb()) {
+      reject(new Error('IndexedDB unavailable'))
+      return
+    }
+
+    const request = window.indexedDB.open(
+      STORAGE_CONSTANTS.SNAPSHOT_DB_NAME,
+      STORAGE_CONSTANTS.SNAPSHOT_DB_VERSION,
+    )
+
+    request.onupgradeneeded = () => {
+      const db = request.result
+      const store = db.objectStoreNames.contains(STORAGE_CONSTANTS.SNAPSHOT_STORE_NAME)
+        ? request.transaction?.objectStore(STORAGE_CONSTANTS.SNAPSHOT_STORE_NAME)
+        : db.createObjectStore(STORAGE_CONSTANTS.SNAPSHOT_STORE_NAME, {
+            keyPath: 'id',
+          })
+
+      if (store && !store.indexNames.contains(SNAPSHOT_STORE_INDEX)) {
+        store.createIndex(SNAPSHOT_STORE_INDEX, SNAPSHOT_STORE_INDEX)
+      }
+    }
+
+    request.onsuccess = () => {
+      resolve(request.result)
+    }
+
+    request.onerror = () => {
+      reject(request.error ?? new Error('Failed to open snapshot database'))
+    }
+  })
+
+const loadAllSnapshotRecords = async (db: IDBDatabase): Promise<BoardSnapshotRecord[]> => {
+  const transaction = db.transaction(STORAGE_CONSTANTS.SNAPSHOT_STORE_NAME, 'readonly')
+  const store = transaction.objectStore(STORAGE_CONSTANTS.SNAPSHOT_STORE_NAME)
+  const records = await requestToPromise<BoardSnapshotRecord[]>(store.getAll())
+  await waitForTransaction(transaction)
+  return records
+}
+
+const applySnapshotRetentionPolicy = async (db: IDBDatabase): Promise<void> => {
+  const allRecords = await loadAllSnapshotRecords(db)
+  const excessCount = allRecords.length - STORAGE_CONSTANTS.SNAPSHOT_HISTORY_LIMIT
+  if (excessCount <= 0) {
+    return
+  }
+
+  const staleRecords = [...allRecords]
+    .sort((a, b) => a.savedAtMs - b.savedAtMs)
+    .slice(0, excessCount)
+
+  const transaction = db.transaction(STORAGE_CONSTANTS.SNAPSHOT_STORE_NAME, 'readwrite')
+  const store = transaction.objectStore(STORAGE_CONSTANTS.SNAPSHOT_STORE_NAME)
+
+  staleRecords.forEach((record) => {
+    store.delete(record.id)
+  })
+
+  await waitForTransaction(transaction)
+  debugLog('storage/snapshot-retention-pruned', {
+    removedCount: staleRecords.length,
+    limit: STORAGE_CONSTANTS.SNAPSHOT_HISTORY_LIMIT,
+  })
+}
+
+export async function saveBoardSnapshot(
+  payload: PersistedBoardState,
+  source: 'autosave' | 'manual' | 'lifecycle' = 'autosave',
+): Promise<void> {
+  if (!canAccessIndexedDb()) {
+    return
+  }
+  const savedAt = new Date().toISOString()
+  const record: BoardSnapshotRecord = {
+    id: uuidv4(),
+    savedAt,
+    savedAtMs: Date.parse(savedAt),
+    source,
+    state: normalizePersistedBoardState(payload),
+  }
+
+  let db: IDBDatabase | null = null
+  try {
+    db = await openSnapshotsDatabase()
+    const transaction = db.transaction(STORAGE_CONSTANTS.SNAPSHOT_STORE_NAME, 'readwrite')
+    const store = transaction.objectStore(STORAGE_CONSTANTS.SNAPSHOT_STORE_NAME)
+    store.put(record)
+    await waitForTransaction(transaction)
+
+    await applySnapshotRetentionPolicy(db)
+
+    debugLog('storage/snapshot-save-success', {
+      snapshotId: record.id,
+      source: record.source,
+      tileCount: Object.keys(record.state.tiles).length,
+    })
+  } catch (error) {
+    debugError('storage/snapshot-save-failed', error)
+  } finally {
+    db?.close()
+  }
+}
+
+export async function listBoardSnapshots(limit = 20): Promise<BoardSnapshotSummary[]> {
+  if (!canAccessIndexedDb()) {
+    return []
+  }
+  let db: IDBDatabase | null = null
+  try {
+    db = await openSnapshotsDatabase()
+    const allRecords = await loadAllSnapshotRecords(db)
+    return allRecords
+      .sort((a, b) => b.savedAtMs - a.savedAtMs)
+      .slice(0, limit)
+      .map(createSnapshotSummary)
+  } catch (error) {
+    debugError('storage/snapshot-list-failed', error)
+    return []
+  } finally {
+    db?.close()
+  }
+}
+
+export async function loadBoardSnapshot(snapshotId: string): Promise<PersistedBoardState | null> {
+  if (!canAccessIndexedDb()) {
+    return null
+  }
+  let db: IDBDatabase | null = null
+  try {
+    db = await openSnapshotsDatabase()
+    const transaction = db.transaction(STORAGE_CONSTANTS.SNAPSHOT_STORE_NAME, 'readonly')
+    const store = transaction.objectStore(STORAGE_CONSTANTS.SNAPSHOT_STORE_NAME)
+    const record = await requestToPromise<BoardSnapshotRecord | undefined>(store.get(snapshotId))
+    await waitForTransaction(transaction)
+
+    if (!record) {
+      return null
+    }
+
+    return normalizePersistedBoardState(record.state)
+  } catch (error) {
+    debugError('storage/snapshot-load-failed', error)
+    return null
+  } finally {
+    db?.close()
+  }
+}
+
+export async function loadLatestBoardSnapshot(): Promise<PersistedBoardState | null> {
+  const [latest] = await listBoardSnapshots(1)
+  if (!latest) {
+    return null
+  }
+
+  return loadBoardSnapshot(latest.id)
+}
+
 export function loadPersistedBoardState(): PersistedBoardState | null {
   if (!canAccessLocalStorage()) {
     return null
@@ -235,6 +453,57 @@ export function savePersistedBoardState(payload: PersistedBoardState): void {
     })
   } catch (error) {
     debugError('storage/save-failed', error)
+  }
+}
+
+export function loadPersistedNameTemplates(): NameTemplates | null {
+  if (!canAccessLocalStorage()) {
+    return null
+  }
+
+  try {
+    const raw = window.localStorage.getItem(NAME_TEMPLATES_STORAGE_KEY)
+    if (!raw) {
+      return null
+    }
+
+    const parsed: unknown = JSON.parse(raw)
+    if (!isNameTemplates(parsed)) {
+      debugLog('storage/load-name-templates-invalid-shape', {
+        storageKey: NAME_TEMPLATES_STORAGE_KEY,
+      })
+      return null
+    }
+
+    const mergedTemplates: NameTemplates = {
+      ...DEFAULT_NAME_TEMPLATES,
+      ...parsed,
+    }
+
+    debugLog('storage/load-name-templates-success', {
+      storageKey: NAME_TEMPLATES_STORAGE_KEY,
+      templates: mergedTemplates,
+    })
+    return mergedTemplates
+  } catch (error) {
+    debugError('storage/load-name-templates-failed', error)
+    return null
+  }
+}
+
+export function savePersistedNameTemplates(nameTemplates: NameTemplates): void {
+  if (!canAccessLocalStorage()) {
+    return
+  }
+
+  try {
+    window.localStorage.setItem(NAME_TEMPLATES_STORAGE_KEY, JSON.stringify(nameTemplates))
+    debugLog('storage/save-name-templates-success', {
+      storageKey: NAME_TEMPLATES_STORAGE_KEY,
+      templates: nameTemplates,
+    })
+  } catch (error) {
+    debugError('storage/save-name-templates-failed', error)
   }
 }
 

@@ -27,6 +27,7 @@ type TileInfoModalProps = {
   mode: TileInfoModalMode
   tile: Tile | null
   createTileType: TileTypeValue | null
+  defaultCreateName?: string
   currentZoneLabel: string | null
   onClose: () => void
   onCreateTile: (payload: CreateTileInput) => void
@@ -41,13 +42,16 @@ export function TileInfoModal({
   mode,
   tile,
   createTileType,
+  defaultCreateName = '',
   currentZoneLabel,
   onClose,
   onCreateTile,
   onSaveTile,
   onDeleteTile,
 }: TileInfoModalProps) {
-  const [name, setName] = useState(() => (mode === 'edit' && tile ? tile.name : ''))
+  const [name, setName] = useState(() =>
+    mode === 'edit' && tile ? tile.name : defaultCreateName,
+  )
   const [notes, setNotes] = useState(() => (mode === 'edit' && tile ? tile.notes : ''))
   const [fatigueState, setFatigueState] = useState<FatigueStateValue>(() =>
     mode === 'edit' && tile ? tile.fatigueState : FatigueState.GREEN,

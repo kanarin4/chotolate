@@ -1,6 +1,13 @@
 import type { Tile, TileType } from './tile'
 
 export type BoardMode = 'setup' | 'command'
+export type NameTemplateType = 'staff' | 'newcomer' | 'container'
+
+export interface NameTemplates {
+  staff: string
+  newcomer: string
+  container: string
+}
 
 export interface DragPosition {
   x: number

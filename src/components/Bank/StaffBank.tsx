@@ -8,18 +8,28 @@ type StaffBankProps = {
   zoneId: string
   tiles: TileModel[]
   activeTileType: TileTypeValue | null
+  selectedTileIds: Set<string>
+  searchMatches: Set<string>
+  isSearchActive: boolean
   onFatigueToggle?: (tileId: string) => void
   onTileInfoClick?: (tileId: string) => void
   onTileNameCommit?: (tileId: string, nextName: string) => void
+  onTileSelect?: (tileId: string, additive: boolean) => void
+  onClose?: () => void
 }
 
 export function StaffBank({
   zoneId,
   tiles,
   activeTileType,
+  selectedTileIds,
+  searchMatches,
+  isSearchActive,
   onFatigueToggle,
   onTileInfoClick,
   onTileNameCommit,
+  onTileSelect,
+  onClose,
 }: StaffBankProps) {
   const canAcceptDrop = activeTileType === null || activeTileType === TileType.STAFF
 
@@ -37,6 +47,7 @@ export function StaffBank({
       count={tiles.length}
       orientation="vertical"
       canAcceptDrop={canAcceptDrop}
+      onClose={onClose}
     >
       {tiles.length === 0 ? (
         <div className={styles.emptyBank}>No staff tiles yet. Drop staff here.</div>
@@ -45,9 +56,13 @@ export function StaffBank({
           <Tile
             key={tile.id}
             tile={tile}
+            isSelected={selectedTileIds.has(tile.id)}
+            isSearchActive={isSearchActive}
+            isSearchMatch={searchMatches.has(tile.id)}
             onFatigueToggle={onFatigueToggle}
             onInfoClick={onTileInfoClick}
             onNameCommit={onTileNameCommit}
+            onSelect={onTileSelect}
           />
         ))
       )}

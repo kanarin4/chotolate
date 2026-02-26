@@ -1,5 +1,5 @@
 import { useDroppable } from '@dnd-kit/core'
-import { useCallback } from 'react'
+import { memo, useCallback, useMemo } from 'react'
 import { useContainerDrag } from '../../hooks/useContainerDrag'
 import { useContainerResize } from '../../hooks/useContainerResize'
 import { useAppStore } from '../../store'
@@ -21,6 +21,10 @@ type ContainerProps = {
   tiles: TileModel[]
   zoom: number
   isOverlapping: boolean
+  hasSearchMatch: boolean
+  isSearchActive: boolean
+  selectedTileIds: Set<string>
+  searchMatches: Set<string>
   activeTileType: TileTypeValue | null
   isEditingName: boolean
   onStartEditName: (containerId: string) => void
@@ -29,13 +33,18 @@ type ContainerProps = {
   onFatigueToggle?: (tileId: string) => void
   onTileInfoClick?: (tileId: string) => void
   onTileNameCommit?: (tileId: string, nextName: string) => void
+  onTileSelect?: (tileId: string, additive: boolean) => void
 }
 
-export function Container({
+function ContainerComponent({
   container,
   tiles,
   zoom,
   isOverlapping,
+  hasSearchMatch,
+  isSearchActive,
+  selectedTileIds,
+  searchMatches,
   activeTileType,
   isEditingName,
   onStartEditName,
@@ -44,6 +53,7 @@ export function Container({
   onFatigueToggle,
   onTileInfoClick,
   onTileNameCommit,
+  onTileSelect,
 }: ContainerProps) {
   const updateContainer = useAppStore((state) => state.updateContainer)
   const bringToFront = useAppStore((state) => state.bringToFront)
@@ -65,8 +75,13 @@ export function Container({
     },
   })
 
-  const staffCount = tiles.filter((tile) => tile.tileType === TileType.STAFF).length
-  const newcomerCount = tiles.length - staffCount
+  const { staffCount, newcomerCount } = useMemo(() => {
+    const nextStaffCount = tiles.filter((tile) => tile.tileType === TileType.STAFF).length
+    return {
+      staffCount: nextStaffCount,
+      newcomerCount: tiles.length - nextStaffCount,
+    }
+  }, [tiles])
 
   const handleMove = useCallback(
     (x: number, y: number) => {
@@ -163,6 +178,8 @@ export function Container({
     <section
       ref={setNodeRef}
       className={`${styles.container} ${isOverlapping ? styles.containerOverlapWarning : ''} ${
+        isSearchActive && hasSearchMatch ? styles.containerSearchMatch : ''
+      } ${isSearchActive && !hasSearchMatch ? styles.containerSearchDimmed : ''} ${
         isOver && canAcceptDrop ? styles.containerDropTarget : ''
       }`}
       style={{
@@ -175,7 +192,8 @@ export function Container({
     >
       <ContainerHeader
         name={container.name}
-        count={tiles.length}
+        staffCount={staffCount}
+        newcomerCount={newcomerCount}
         acceptsStaff={container.acceptsStaff}
         acceptsNewcomers={container.acceptsNewcomers}
         isEditingName={isEditingName}
@@ -193,12 +211,18 @@ export function Container({
         tiles={tiles}
         showStaffSection={container.acceptsStaff}
         showNewcomerSection={container.acceptsNewcomers}
+        selectedTileIds={selectedTileIds}
+        searchMatches={searchMatches}
+        isSearchActive={isSearchActive}
         onFatigueToggle={onFatigueToggle}
         onInfoClick={onTileInfoClick}
         onTileNameCommit={onTileNameCommit}
+        onTileSelect={onTileSelect}
       />
 
       <ResizeHandles onResizePointerDown={handleResizePointerDown} />
     </section>
   )
 }
+
+export const Container = memo(ContainerComponent)

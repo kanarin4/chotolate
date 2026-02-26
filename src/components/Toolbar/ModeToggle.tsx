@@ -13,15 +13,17 @@ export function ModeToggle({ mode, onModeChange }: ModeToggleProps) {
         type="button"
         className={`${styles.modeButton} ${mode === 'setup' ? styles.modeButtonActive : ''}`}
         onClick={() => onModeChange('setup')}
+        title="Setup"
       >
-        Setup
+        <span className={styles.buttonLabel}>Setup</span>
       </button>
       <button
         type="button"
         className={`${styles.modeButton} ${mode === 'command' ? styles.modeButtonActive : ''}`}
         onClick={() => onModeChange('command')}
+        title="Command"
       >
-        Command
+        <span className={styles.buttonLabel}>Command</span>
       </button>
     </div>
   )

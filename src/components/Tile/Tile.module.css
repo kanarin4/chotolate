@@ -31,11 +31,33 @@
 
 .tileSearchMatch {
   border-color: #2f6feb;
-  box-shadow: 0 0 0 2px rgba(47, 111, 235, 0.22);
+  box-shadow: 0 0 0 2px rgba(47, 111, 235, 0.4);
+  background: #2f6feb;
+  color: #fff;
+}
+
+.tileSearchMatch .tileName {
+  color: #fff;
+}
+
+.tileSearchMatch .buttonBadge,
+.tileSearchMatch .infoButton {
+  border-color: rgba(255, 255, 255, 0.4);
+  color: #fff;
 }
 
 .tileSearchDimmed {
-  opacity: 0.45;
+  opacity: 0.62;
+}
+
+.tileSelected {
+  border-color: #0b3d91;
+  box-shadow: 0 0 0 3px rgba(11, 61, 145, 0.28);
+  background: #eef4ff;
+}
+
+.tileSelected.tileSearchDimmed {
+  opacity: 1;
 }
 
 .staffTile {

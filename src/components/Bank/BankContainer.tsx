@@ -10,6 +10,7 @@ type BankContainerProps = {
   orientation: 'vertical' | 'horizontal'
   canAcceptDrop?: boolean
   priority?: number
+  onClose?: () => void
   children: ReactNode
 }
 
@@ -20,6 +21,7 @@ export function BankContainer({
   orientation,
   canAcceptDrop = true,
   priority = 1,
+  onClose,
   children,
 }: BankContainerProps) {
   const { isOver, setNodeRef } = useDroppable({
@@ -40,7 +42,19 @@ export function BankContainer({
       className={`${styles.bankContainer} ${isActiveDropTarget ? styles.bankDropTarget : ''}`}
     >
       <header className={styles.bankHeader}>
-        <span>{title}</span>
+        <div className={styles.bankHeaderLeft}>
+          {onClose && (
+            <button
+              type="button"
+              className={styles.closeButton}
+              onClick={onClose}
+              aria-label="Close"
+            >
+              ×
+            </button>
+          )}
+          <span>{title}</span>
+        </div>
         <CountBadge count={count} />
       </header>
       <div

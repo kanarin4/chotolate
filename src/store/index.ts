@@ -3,10 +3,17 @@ import { createBoardSlice } from './boardSlice'
 import { createUISlice } from './uiSlice'
 import type { AppStore } from './types'
 import { debugLog } from '../utils/debug'
-import { loadPersistedBoardState, loadPersistedMode, savePersistedMode } from '../utils/storage'
+import {
+  loadPersistedBoardState,
+  loadPersistedMode,
+  loadPersistedNameTemplates,
+  savePersistedMode,
+  savePersistedNameTemplates,
+} from '../utils/storage'
 
 const hydratedBoardState = loadPersistedBoardState()
 const hydratedMode = loadPersistedMode()
+const hydratedNameTemplates = loadPersistedNameTemplates()
 
 export const useAppStore = create<AppStore>()((...args) => ({
   ...createBoardSlice(...args),
@@ -14,6 +21,11 @@ export const useAppStore = create<AppStore>()((...args) => ({
   ...(hydratedMode
     ? {
         mode: hydratedMode,
+      }
+    : {}),
+  ...(hydratedNameTemplates
+    ? {
+        nameTemplates: hydratedNameTemplates,
       }
     : {}),
   ...(hydratedBoardState
@@ -38,6 +50,10 @@ if (hydratedBoardState) {
 useAppStore.subscribe((nextState, prevState) => {
   if (nextState.mode !== prevState.mode) {
     savePersistedMode(nextState.mode)
+  }
+
+  if (nextState.nameTemplates !== prevState.nameTemplates) {
+    savePersistedNameTemplates(nextState.nameTemplates)
   }
 
   if (!import.meta.env.DEV) {

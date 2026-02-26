@@ -118,8 +118,8 @@ const createInitialBoardState = (): Pick<BoardSlice, 'board' | 'containers' | 'b
       acceptsNewcomers: true,
       x: 80,
       y: 64,
-      width: 520,
-      height: 260,
+      width: LAYOUT_CONSTANTS.CONTAINER_DEFAULT_WIDTH,
+      height: LAYOUT_CONSTANTS.CONTAINER_DEFAULT_HEIGHT,
       zIndex: 1,
       createdAt: timestamp,
       updatedAt: timestamp,
@@ -136,7 +136,7 @@ const createInitialBoardState = (): Pick<BoardSlice, 'board' | 'containers' | 'b
       id: staffContainerTileId,
       boardId,
       currentZoneId: firstContainerId,
-      name: 'Aki',
+      name: 'Staff 2',
       tileType: TileType.STAFF,
       fatigueState: FatigueState.GREEN,
       notes: '',
@@ -148,7 +148,7 @@ const createInitialBoardState = (): Pick<BoardSlice, 'board' | 'containers' | 'b
       id: staffBankTileId,
       boardId,
       currentZoneId: staffBankId,
-      name: 'Mina',
+      name: 'Staff 1',
       tileType: TileType.STAFF,
       fatigueState: FatigueState.YELLOW,
       notes: '',
@@ -160,7 +160,7 @@ const createInitialBoardState = (): Pick<BoardSlice, 'board' | 'containers' | 'b
       id: newcomerBankTileId,
       boardId,
       currentZoneId: newcomerBankId,
-      name: 'Kai',
+      name: 'S0001',
       tileType: TileType.NEWCOMER,
       fatigueState: FatigueState.GREEN,
       notes: '',
@@ -172,7 +172,7 @@ const createInitialBoardState = (): Pick<BoardSlice, 'board' | 'containers' | 'b
       id: completedTileId,
       boardId,
       currentZoneId: completedBankId,
-      name: 'Rin',
+      name: 'S0002',
       tileType: TileType.NEWCOMER,
       fatigueState: FatigueState.GREEN,
       notes: '',
@@ -215,6 +215,11 @@ export const createBoardSlice: StateCreator<AppStore, [], [], BoardSlice> = (set
       containers: payload.containers,
       banks: payload.banks,
       tiles: payload.tiles,
+      dragState: null,
+      selectedTileId: null,
+      selectedTileIds: [],
+      modalState: null,
+      undoStack: [],
     })
   },
 
@@ -253,6 +258,7 @@ export const createBoardSlice: StateCreator<AppStore, [], [], BoardSlice> = (set
     const id = uuidv4()
     const timestamp = nowIso()
     const name = payload?.name?.trim() ? payload.name : 'New Position'
+
     const width = payload?.width ?? LAYOUT_CONSTANTS.CONTAINER_DEFAULT_WIDTH
     const height = payload?.height ?? LAYOUT_CONSTANTS.CONTAINER_DEFAULT_HEIGHT
     const x = payload?.x ?? 120
@@ -543,8 +549,12 @@ export const createBoardSlice: StateCreator<AppStore, [], [], BoardSlice> = (set
       const nextTiles = { ...state.tiles }
       delete nextTiles[id]
 
+      const nextSelectedTileIds = state.selectedTileIds.filter((selectedId) => selectedId !== id)
+
       return {
         tiles: nextTiles,
+        selectedTileIds: nextSelectedTileIds,
+        selectedTileId: nextSelectedTileIds[nextSelectedTileIds.length - 1] ?? null,
       }
     })
   },

@@ -5,14 +5,25 @@ export const LAYOUT_CONSTANTS = {
   CONTAINER_HEADER_HEIGHT: 36,
   CONTAINER_MIN_WIDTH: 120,
   CONTAINER_MIN_HEIGHT: 80,
-  CONTAINER_DEFAULT_WIDTH: 240,
-  CONTAINER_DEFAULT_HEIGHT: 160,
+  CONTAINER_DEFAULT_WIDTH: 520,
+  CONTAINER_DEFAULT_HEIGHT: 260,
 } as const
 
 export const STORAGE_CONSTANTS = {
   KEY_PREFIX: 'chotolate:board',
   VERSION: 1,
   AUTO_SAVE_DEBOUNCE_MS: 500,
+  SNAPSHOT_HISTORY_LIMIT: 60,
+  SNAPSHOT_INTERVAL_MS: 30_000,
+  SNAPSHOT_DB_NAME: 'chotolate-snapshots',
+  SNAPSHOT_DB_VERSION: 1,
+  SNAPSHOT_STORE_NAME: 'boardSnapshots',
+} as const
+
+export const DEFAULT_NAME_TEMPLATES = {
+  staff: 'Staff {n}',
+  newcomer: 'Newcomer {n}',
+  container: 'Position {n}',
 } as const
 
 export const UI_CONSTANTS = {

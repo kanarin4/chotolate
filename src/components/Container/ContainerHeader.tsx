@@ -5,7 +5,8 @@ import styles from './Container.module.css'
 
 type ContainerHeaderProps = {
   name: string
-  count: number
+  staffCount: number
+  newcomerCount: number
   acceptsStaff: boolean
   acceptsNewcomers: boolean
   isEditingName: boolean
@@ -20,7 +21,8 @@ type ContainerHeaderProps = {
 
 export function ContainerHeader({
   name,
-  count,
+  staffCount,
+  newcomerCount,
   acceptsStaff,
   acceptsNewcomers,
   isEditingName,
@@ -114,7 +116,16 @@ export function ContainerHeader({
       )}
 
       <div className={styles.containerHeaderRight}>
-        <CountBadge count={count} />
+        <span className={styles.typeCountGroup}>
+          <span className={styles.typeCount}>
+            <span className={styles.typeCountLabel}>S</span>
+            <CountBadge count={staffCount} />
+          </span>
+          <span className={styles.typeCount}>
+            <span className={styles.typeCountLabel}>N</span>
+            <CountBadge count={newcomerCount} />
+          </span>
+        </span>
 
         <div ref={editMenuRef} className={styles.editMenuContainer} onPointerDown={stopHeaderDrag}>
           <button

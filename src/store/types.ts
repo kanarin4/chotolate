@@ -5,6 +5,8 @@ import type {
   DragPosition,
   DragState,
   FatigueState,
+  NameTemplates,
+  NameTemplateType,
   ModalState,
   PersistedBoardState,
   Tile,
@@ -67,6 +69,8 @@ export interface UISlice {
   searchQuery: string
   dragState: DragState | null
   selectedTileId: string | null
+  selectedTileIds: string[]
+  nameTemplates: NameTemplates
   modalState: ModalState | null
   undoStack: UndoEntry[]
 
@@ -80,6 +84,10 @@ export interface UISlice {
   dragCancel: () => void
 
   setSelectedTileId: (tileId: string | null) => void
+  selectTile: (tileId: string, additive: boolean) => void
+  clearTileSelection: () => void
+  removeTileFromSelection: (tileId: string) => void
+  setNameTemplate: (templateType: NameTemplateType, value: string) => void
   openModal: (modalState: ModalState) => void
   closeModal: () => void
 

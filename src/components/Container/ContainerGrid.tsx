@@ -8,9 +8,13 @@ type ContainerGridProps = {
   tiles: TileModel[]
   showStaffSection: boolean
   showNewcomerSection: boolean
+  selectedTileIds: Set<string>
+  searchMatches: Set<string>
+  isSearchActive: boolean
   onFatigueToggle?: (tileId: string) => void
   onInfoClick?: (tileId: string) => void
   onTileNameCommit?: (tileId: string, nextName: string) => void
+  onTileSelect?: (tileId: string, additive: boolean) => void
 }
 
 function TileSection({
@@ -18,17 +22,25 @@ function TileSection({
   tiles,
   containerWidth,
   emptyLabel,
+  selectedTileIds,
+  searchMatches,
+  isSearchActive,
   onFatigueToggle,
   onInfoClick,
   onTileNameCommit,
+  onTileSelect,
 }: {
   title: string
   tiles: TileModel[]
   containerWidth: number
   emptyLabel: string
+  selectedTileIds: Set<string>
+  searchMatches: Set<string>
+  isSearchActive: boolean
   onFatigueToggle?: (tileId: string) => void
   onInfoClick?: (tileId: string) => void
   onTileNameCommit?: (tileId: string, nextName: string) => void
+  onTileSelect?: (tileId: string, additive: boolean) => void
 }) {
   const layout = useContainerLayout(containerWidth, tiles.length)
 
@@ -49,9 +61,13 @@ function TileSection({
             <Tile
               key={tile.id}
               tile={tile}
+              isSelected={selectedTileIds.has(tile.id)}
+              isSearchActive={isSearchActive}
+              isSearchMatch={searchMatches.has(tile.id)}
               onFatigueToggle={onFatigueToggle}
               onInfoClick={onInfoClick}
               onNameCommit={onTileNameCommit}
+              onSelect={onTileSelect}
             />
           ))}
         </div>
@@ -65,9 +81,13 @@ export function ContainerGrid({
   tiles,
   showStaffSection,
   showNewcomerSection,
+  selectedTileIds,
+  searchMatches,
+  isSearchActive,
   onFatigueToggle,
   onInfoClick,
   onTileNameCommit,
+  onTileSelect,
 }: ContainerGridProps) {
   const staffTiles = tiles.filter((tile) => tile.tileType === TileType.STAFF)
   const newcomerTiles = tiles.filter((tile) => tile.tileType === TileType.NEWCOMER)
@@ -84,9 +104,13 @@ export function ContainerGrid({
           tiles={staffTiles}
           containerWidth={containerWidth}
           emptyLabel="No staff assigned. Drop staff tiles here."
+          selectedTileIds={selectedTileIds}
+          searchMatches={searchMatches}
+          isSearchActive={isSearchActive}
           onFatigueToggle={onFatigueToggle}
           onInfoClick={onInfoClick}
           onTileNameCommit={onTileNameCommit}
+          onTileSelect={onTileSelect}
         />
       ) : null}
 
@@ -96,9 +120,13 @@ export function ContainerGrid({
           tiles={newcomerTiles}
           containerWidth={containerWidth}
           emptyLabel="No newcomers assigned. Drop newcomer tiles here."
+          selectedTileIds={selectedTileIds}
+          searchMatches={searchMatches}
+          isSearchActive={isSearchActive}
           onFatigueToggle={onFatigueToggle}
           onInfoClick={onInfoClick}
           onTileNameCommit={onTileNameCommit}
+          onTileSelect={onTileSelect}
         />
       ) : null}
     </div>

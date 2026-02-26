@@ -15,6 +15,7 @@ type BoardProps = {
   zoom: number
   isEmpty: boolean
   emptyLabel: string
+  onBackgroundPointerDown?: () => void
   children: ReactNode
 }
 
@@ -41,7 +42,7 @@ const assignForwardedRef = (
 }
 
 export const Board = forwardRef<HTMLDivElement, BoardProps>(function Board(
-  { canvasWidth, canvasHeight, zoom, isEmpty, emptyLabel, children },
+  { canvasWidth, canvasHeight, zoom, isEmpty, emptyLabel, onBackgroundPointerDown, children },
   ref,
 ) {
   const panRef = useRef<PanState | null>(null)
@@ -107,6 +108,19 @@ export const Board = forwardRef<HTMLDivElement, BoardProps>(function Board(
     }
   }, [])
 
+  const handleCanvasPointerDown = useCallback(
+    (event: PointerEvent<HTMLDivElement>) => {
+      if (event.button !== 0) {
+        return
+      }
+
+      if (event.target === event.currentTarget) {
+        onBackgroundPointerDown?.()
+      }
+    },
+    [onBackgroundPointerDown],
+  )
+
   return (
     <div
       ref={setViewportNode}
@@ -130,6 +144,7 @@ export const Board = forwardRef<HTMLDivElement, BoardProps>(function Board(
             height: canvasHeight,
             transform: `scale(${zoom})`,
           }}
+          onPointerDown={handleCanvasPointerDown}
         >
           {isEmpty ? <div className={styles.boardEmpty}>{emptyLabel}</div> : null}
           {children}

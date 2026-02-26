@@ -26,6 +26,30 @@
   flex: 0 0 auto;
 }
 
+.bankHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.closeButton {
+  display: none;
+  background: none;
+  border: 0;
+  padding: 4px;
+  cursor: pointer;
+  color: var(--color-muted);
+  line-height: 1;
+  font-size: 20px;
+  margin-left: -4px;
+}
+
+@media (max-width: 1023px) {
+  .closeButton {
+    display: block;
+  }
+}
+
 .bankBodyVertical {
   flex: 1;
   min-height: 0;

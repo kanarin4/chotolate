@@ -1,4 +1,4 @@
-import { BankType, type Bank, type Container, type Tile } from '../types'
+import { BankType, TileType, type Bank, type Container, type Tile } from '../types'
 import { calculateContainerMinSize } from '../utils/containerSizing'
 import type { AppStore } from './types'
 
@@ -7,6 +7,10 @@ const banksCache = new WeakMap<Record<string, Bank>, Bank[]>()
 const tilesCache = new WeakMap<Record<string, Tile>, Tile[]>()
 const tilesByZoneCache = new WeakMap<Record<string, Tile>, Record<string, Tile[]>>()
 const tileCountsCache = new WeakMap<Record<string, Tile[]>, Record<string, number>>()
+const splitTileCountsCache = new WeakMap<
+  Record<string, Tile[]>,
+  Record<string, { staffCount: number; newcomerCount: number }>
+>()
 const containerMinSizesCache = new WeakMap<
   Record<string, Container>,
   WeakMap<Record<string, Tile>, Record<string, { minWidth: number; minHeight: number }>>
@@ -16,7 +20,9 @@ const zoneLookupCache = new WeakMap<
   WeakMap<Record<string, Bank>, Record<string, Container | Bank>>
 >()
 const searchMatchesCache = new WeakMap<Record<string, Tile>, Map<string, Set<string>>>()
+const containerSearchMatchesCache = new WeakMap<Record<string, Tile>, Map<string, Set<string>>>()
 const EMPTY_SEARCH_MATCHES = new Set<string>()
+const EMPTY_CONTAINER_SEARCH_MATCHES = new Set<string>()
 
 export const selectBoard = (state: AppStore) => state.board
 
@@ -93,6 +99,33 @@ export const selectTileCounts = (state: AppStore): Record<string, number> => {
   return computed
 }
 
+export const selectSplitTileCounts = (
+  state: AppStore,
+): Record<string, { staffCount: number; newcomerCount: number }> => {
+  const tilesByZone = selectTilesByZone(state)
+  const cached = splitTileCountsCache.get(tilesByZone)
+
+  if (cached) {
+    return cached
+  }
+
+  const computed = Object.fromEntries(
+    Object.entries(tilesByZone).map(([zoneId, tiles]) => {
+      const staffCount = tiles.filter((tile) => tile.tileType === TileType.STAFF).length
+      return [
+        zoneId,
+        {
+          staffCount,
+          newcomerCount: tiles.length - staffCount,
+        },
+      ]
+    }),
+  )
+
+  splitTileCountsCache.set(tilesByZone, computed)
+  return computed
+}
+
 export const selectZoneLookup = (state: AppStore): Record<string, Container | Bank> => {
   const byBanksCache = zoneLookupCache.get(state.containers)
   const cached = byBanksCache?.get(state.banks)
@@ -160,7 +193,10 @@ export const selectSearchMatches = (state: AppStore): Set<string> => {
   }
 
   const matchingIds = Object.values(state.tiles)
-    .filter((tile) => tile.name.toLowerCase().includes(query))
+    .filter(
+      (tile) =>
+        tile.name.toLowerCase().includes(query) || tile.notes.toLowerCase().includes(query),
+    )
     .map((tile) => tile.id)
 
   const computed = new Set(matchingIds)
@@ -168,6 +204,36 @@ export const selectSearchMatches = (state: AppStore): Set<string> => {
   searchMatchesCache.set(state.tiles, queryCache)
 
   return computed
+}
+
+export const selectContainersWithSearchMatches = (state: AppStore): Set<string> => {
+  const query = state.searchQuery.trim().toLowerCase()
+  if (!query) {
+    return EMPTY_CONTAINER_SEARCH_MATCHES
+  }
+
+  const queryCache = containerSearchMatchesCache.get(state.tiles) ?? new Map<string, Set<string>>()
+  const cached = queryCache.get(query)
+
+  if (cached) {
+    return cached
+  }
+
+  const matchingContainerIds = new Set<string>()
+
+  for (const tile of Object.values(state.tiles)) {
+    if (!tile.name.toLowerCase().includes(query) && !tile.notes.toLowerCase().includes(query)) {
+      continue
+    }
+
+    if (state.containers[tile.currentZoneId]) {
+      matchingContainerIds.add(tile.currentZoneId)
+    }
+  }
+
+  queryCache.set(query, matchingContainerIds)
+  containerSearchMatchesCache.set(state.tiles, queryCache)
+  return matchingContainerIds
 }
 
 export const selectIsAnyTileDragging = (state: AppStore): boolean => state.dragState !== null

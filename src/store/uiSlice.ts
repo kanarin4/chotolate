@@ -1,5 +1,6 @@
 import type { StateCreator } from 'zustand'
 import { debugLog } from '../utils/debug'
+import { DEFAULT_NAME_TEMPLATES } from '../utils/constants'
 import { UI_CONSTANTS } from '../utils/constants'
 import type { AppStore, UISlice } from './types'
 
@@ -12,6 +13,10 @@ export const createUISlice: StateCreator<AppStore, [], [], UISlice> = (set, get)
   searchQuery: '',
   dragState: null,
   selectedTileId: null,
+  selectedTileIds: [],
+  nameTemplates: {
+    ...DEFAULT_NAME_TEMPLATES,
+  },
   modalState: null,
   undoStack: [],
 
@@ -81,7 +86,65 @@ export const createUISlice: StateCreator<AppStore, [], [], UISlice> = (set, get)
 
   setSelectedTileId: (selectedTileId) => {
     logUIAction('setSelectedTileId', { selectedTileId })
-    set({ selectedTileId })
+    set({
+      selectedTileId,
+      selectedTileIds: selectedTileId ? [selectedTileId] : [],
+    })
+  },
+
+  selectTile: (tileId, additive) => {
+    logUIAction('selectTile', { tileId, additive })
+    set((state) => {
+      if (!additive) {
+        return {
+          selectedTileId: tileId,
+          selectedTileIds: [tileId],
+        }
+      }
+
+      const alreadySelected = state.selectedTileIds.includes(tileId)
+      const nextSelectedTileIds = alreadySelected
+        ? state.selectedTileIds.filter((id) => id !== tileId)
+        : [...state.selectedTileIds, tileId]
+
+      return {
+        selectedTileId: nextSelectedTileIds[nextSelectedTileIds.length - 1] ?? null,
+        selectedTileIds: nextSelectedTileIds,
+      }
+    })
+  },
+
+  clearTileSelection: () => {
+    logUIAction('clearTileSelection')
+    set({
+      selectedTileId: null,
+      selectedTileIds: [],
+    })
+  },
+
+  removeTileFromSelection: (tileId) => {
+    logUIAction('removeTileFromSelection', { tileId })
+    set((state) => {
+      if (!state.selectedTileIds.includes(tileId)) {
+        return state
+      }
+
+      const nextSelectedTileIds = state.selectedTileIds.filter((selectedId) => selectedId !== tileId)
+      return {
+        selectedTileId: nextSelectedTileIds[nextSelectedTileIds.length - 1] ?? null,
+        selectedTileIds: nextSelectedTileIds,
+      }
+    })
+  },
+
+  setNameTemplate: (templateType, value) => {
+    logUIAction('setNameTemplate', { templateType, value })
+    set((state) => ({
+      nameTemplates: {
+        ...state.nameTemplates,
+        [templateType]: value,
+      },
+    }))
   },
 
   openModal: (modalState) => {

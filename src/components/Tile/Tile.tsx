@@ -1,7 +1,12 @@
 import { useDraggable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
-import { useState, type KeyboardEvent, type MouseEvent, type PointerEvent } from 'react'
-import { selectSearchMatches, useAppStore } from '../../store'
+import {
+  memo,
+  useState,
+  type KeyboardEvent,
+  type MouseEvent,
+  type PointerEvent,
+} from 'react'
 import type { Tile as TileModel } from '../../types'
 import { TileType } from '../../types'
 import { debugLog } from '../../utils/debug'
@@ -13,22 +18,26 @@ type TileProps = {
   onFatigueToggle?: (tileId: string) => void
   onInfoClick?: (tileId: string) => void
   onNameCommit?: (tileId: string, nextName: string) => void
+  onSelect?: (tileId: string, additive: boolean) => void
+  isSelected?: boolean
+  isSearchActive?: boolean
+  isSearchMatch?: boolean
   draggable?: boolean
 }
 
-export function Tile({
+function TileComponent({
   tile,
   onFatigueToggle,
   onInfoClick,
   onNameCommit,
+  onSelect,
+  isSelected = false,
+  isSearchActive = false,
+  isSearchMatch = false,
   draggable = true,
 }: TileProps) {
   const [isEditingName, setIsEditingName] = useState(false)
   const [nameDraft, setNameDraft] = useState(tile.name)
-  const searchQuery = useAppStore((state) => state.searchQuery)
-  const searchMatches = useAppStore(selectSearchMatches)
-  const isSearchActive = searchQuery.trim().length > 0
-  const isSearchMatch = !isSearchActive || searchMatches.has(tile.id)
   const supportsFatigue = tile.tileType === TileType.STAFF
 
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
@@ -111,6 +120,17 @@ export function Tile({
   }
 
   const dragInteractionProps = draggable && !isEditingName ? { ...attributes, ...listeners } : {}
+  const shouldDimBySearch = isSearchActive && !isSearchMatch && !isSelected
+  const shouldHighlightMatch = isSearchActive && isSearchMatch
+
+  const handleTilePointerDown = (event: PointerEvent<HTMLElement>) => {
+    if (event.button !== 0) {
+      return
+    }
+
+    const additive = event.shiftKey || event.metaKey || event.ctrlKey
+    onSelect?.(tile.id, additive)
+  }
 
   return (
     <article
@@ -120,9 +140,23 @@ export function Tile({
         tile.tileType === TileType.STAFF ? styles.staffTile : styles.newcomerTile
       } ${draggable && !isEditingName ? styles.tileDraggable : ''} ${
         isDragging ? styles.tileDraggingSource : ''
-      } ${isSearchActive && isSearchMatch ? styles.tileSearchMatch : ''} ${
-        isSearchActive && !isSearchMatch ? styles.tileSearchDimmed : ''
-      }`}
+      } ${shouldHighlightMatch ? styles.tileSearchMatch : ''} ${
+        shouldDimBySearch ? styles.tileSearchDimmed : ''
+      } ${isSelected ? styles.tileSelected : ''}`}
+      onPointerDown={handleTilePointerDown}
+      aria-selected={isSelected}
+      data-selected={isSelected}
+      data-search-match={shouldHighlightMatch}
+      data-search-dimmed={shouldDimBySearch}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault()
+          const additive = event.shiftKey || event.metaKey || event.ctrlKey
+          onSelect?.(tile.id, additive)
+        }
+      }}
       {...dragInteractionProps}
     >
       {supportsFatigue ? (
@@ -155,3 +189,5 @@ export function Tile({
     </article>
   )
 }
+
+export const Tile = memo(TileComponent)
