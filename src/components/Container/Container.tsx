@@ -30,7 +30,7 @@ type ContainerProps = {
   onStartEditName: (containerId: string) => void
   onCommitEditName: (containerId: string, name: string) => void
   onCancelEditName: () => void
-  onFatigueToggle?: (tileId: string) => void
+  onHouseToggle?: (tileId: string) => void
   onTileInfoClick?: (tileId: string) => void
   onTileNameCommit?: (tileId: string, nextName: string) => void
   onTileSelect?: (tileId: string, additive: boolean) => void
@@ -50,7 +50,7 @@ function ContainerComponent({
   onStartEditName,
   onCommitEditName,
   onCancelEditName,
-  onFatigueToggle,
+  onHouseToggle,
   onTileInfoClick,
   onTileNameCommit,
   onTileSelect,
@@ -212,7 +212,7 @@ function ContainerComponent({
         selectedTileIds={selectedTileIds}
         searchMatches={searchMatches}
         isSearchActive={isSearchActive}
-        onFatigueToggle={onFatigueToggle}
+        onHouseToggle={onHouseToggle}
         onInfoClick={onTileInfoClick}
         onTileNameCommit={onTileNameCommit}
         onTileSelect={onTileSelect}

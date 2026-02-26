@@ -4,7 +4,7 @@ import type {
   BoardMode,
   DragPosition,
   DragState,
-  FatigueState,
+  House,
   NameTemplates,
   NameTemplateType,
   ModalState,
@@ -23,7 +23,7 @@ export type ContainerChanges = Partial<
   >
 >
 
-export type TileChanges = Partial<Pick<Tile, 'name' | 'notes' | 'orderIndex' | 'currentZoneId'>>
+export type TileChanges = Partial<Pick<Tile, 'name' | 'notes' | 'orderIndex' | 'currentZoneId' | 'house'>>
 
 export interface CreateTileInput {
   name: string
@@ -61,8 +61,8 @@ export interface BoardSlice {
   updateTile: (id: string, changes: TileChanges) => void
   deleteTile: (id: string) => void
   moveTile: (id: string, targetZoneId: string) => void
-  cycleFatigue: (id: string) => void
-  setFatigue: (id: string, fatigueState: FatigueState) => void
+  cycleHouse: (id: string) => void
+  setHouse: (id: string, house: House) => void
 }
 
 export interface UISlice {

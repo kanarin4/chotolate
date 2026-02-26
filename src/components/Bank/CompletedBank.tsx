@@ -12,7 +12,7 @@ type CompletedBankProps = {
   selectedTileIds: Set<string>
   searchMatches: Set<string>
   isSearchActive: boolean
-  onFatigueToggle?: (tileId: string) => void
+  onHouseToggle?: (tileId: string) => void
   onTileInfoClick?: (tileId: string) => void
   onTileNameCommit?: (tileId: string, nextName: string) => void
   onTileSelect?: (tileId: string, additive: boolean) => void
@@ -27,7 +27,7 @@ export function CompletedBank({
   selectedTileIds,
   searchMatches,
   isSearchActive,
-  onFatigueToggle,
+  onHouseToggle,
   onTileInfoClick,
   onTileNameCommit,
   onTileSelect,
@@ -64,7 +64,7 @@ export function CompletedBank({
             isSelected={selectedTileIds.has(tile.id)}
             isSearchActive={isSearchActive}
             isSearchMatch={searchMatches.has(tile.id)}
-            onFatigueToggle={onFatigueToggle}
+            onHouseToggle={onHouseToggle}
             onInfoClick={onTileInfoClick}
             onNameCommit={onTileNameCommit}
             onSelect={onTileSelect}

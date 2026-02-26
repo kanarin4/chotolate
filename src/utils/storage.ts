@@ -1,7 +1,7 @@
 import { v4 as uuidv4 } from 'uuid'
 import {
   BankType,
-  FatigueState,
+  House,
   TileType,
   type Bank,
   type BoardMode,
@@ -81,11 +81,12 @@ const getBankIdByType = (banks: Record<string, Bank>, bankType: BankType): strin
   return matching?.id ?? null
 }
 
-const isFatigueState = (value: string): value is Tile['fatigueState'] => {
+const isValidHouse = (value: string): value is Tile['house'] => {
   return (
-    value === FatigueState.GREEN ||
-    value === FatigueState.YELLOW ||
-    value === FatigueState.RED
+    value === House.RED ||
+    value === House.YELLOW ||
+    value === House.BLUE ||
+    value === House.GREEN
   )
 }
 
@@ -165,18 +166,17 @@ const normalizePersistedBoardState = (
         currentZoneId = fallbackZoneId
       }
 
-      const fatigueState = isFatigueState(tile.fatigueState)
-        ? tile.fatigueState
-        : FatigueState.GREEN
-      const normalizedFatigueState =
-        tileType === TileType.NEWCOMER ? FatigueState.GREEN : fatigueState
+      const houseRaw = (tile.house || (tile as any).fatigueState || '').toLowerCase()
+      const normalizedHouse: Tile['house'] = isValidHouse(houseRaw)
+        ? houseRaw
+        : House.GREEN
 
       return [
         id,
         {
           ...tile,
           tileType,
-          fatigueState: normalizedFatigueState,
+          house: normalizedHouse,
           notes: tile.notes ?? '',
           currentZoneId,
         },
@@ -207,105 +207,6 @@ export function parseImportedBoardState(value: unknown): PersistedBoardState | n
   }
 
   return null
-}
-
-const createSnapshotSummary = (record: BoardSnapshotRecord): BoardSnapshotSummary => ({
-  id: record.id,
-  savedAt: record.savedAt,
-  source: record.source,
-  containerCount: Object.keys(record.state.containers).length,
-  bankCount: Object.keys(record.state.banks).length,
-  tileCount: Object.keys(record.state.tiles).length,
-})
-
-const waitForTransaction = (transaction: IDBTransaction): Promise<void> =>
-  new Promise((resolve, reject) => {
-    transaction.oncomplete = () => {
-      resolve()
-    }
-    transaction.onerror = () => {
-      reject(transaction.error ?? new Error('IndexedDB transaction failed'))
-    }
-    transaction.onabort = () => {
-      reject(transaction.error ?? new Error('IndexedDB transaction aborted'))
-    }
-  })
-
-const requestToPromise = <T>(request: IDBRequest<T>): Promise<T> =>
-  new Promise((resolve, reject) => {
-    request.onsuccess = () => {
-      resolve(request.result)
-    }
-    request.onerror = () => {
-      reject(request.error ?? new Error('IndexedDB request failed'))
-    }
-  })
-
-const openSnapshotsDatabase = (): Promise<IDBDatabase> =>
-  new Promise((resolve, reject) => {
-    if (!canAccessIndexedDb()) {
-      reject(new Error('IndexedDB unavailable'))
-      return
-    }
-
-    const request = window.indexedDB.open(
-      STORAGE_CONSTANTS.SNAPSHOT_DB_NAME,
-      STORAGE_CONSTANTS.SNAPSHOT_DB_VERSION,
-    )
-
-    request.onupgradeneeded = () => {
-      const db = request.result
-      const store = db.objectStoreNames.contains(STORAGE_CONSTANTS.SNAPSHOT_STORE_NAME)
-        ? request.transaction?.objectStore(STORAGE_CONSTANTS.SNAPSHOT_STORE_NAME)
-        : db.createObjectStore(STORAGE_CONSTANTS.SNAPSHOT_STORE_NAME, {
-            keyPath: 'id',
-          })
-
-      if (store && !store.indexNames.contains(SNAPSHOT_STORE_INDEX)) {
-        store.createIndex(SNAPSHOT_STORE_INDEX, SNAPSHOT_STORE_INDEX)
-      }
-    }
-
-    request.onsuccess = () => {
-      resolve(request.result)
-    }
-
-    request.onerror = () => {
-      reject(request.error ?? new Error('Failed to open snapshot database'))
-    }
-  })
-
-const loadAllSnapshotRecords = async (db: IDBDatabase): Promise<BoardSnapshotRecord[]> => {
-  const transaction = db.transaction(STORAGE_CONSTANTS.SNAPSHOT_STORE_NAME, 'readonly')
-  const store = transaction.objectStore(STORAGE_CONSTANTS.SNAPSHOT_STORE_NAME)
-  const records = await requestToPromise<BoardSnapshotRecord[]>(store.getAll())
-  await waitForTransaction(transaction)
-  return records
-}
-
-const applySnapshotRetentionPolicy = async (db: IDBDatabase): Promise<void> => {
-  const allRecords = await loadAllSnapshotRecords(db)
-  const excessCount = allRecords.length - STORAGE_CONSTANTS.SNAPSHOT_HISTORY_LIMIT
-  if (excessCount <= 0) {
-    return
-  }
-
-  const staleRecords = [...allRecords]
-    .sort((a, b) => a.savedAtMs - b.savedAtMs)
-    .slice(0, excessCount)
-
-  const transaction = db.transaction(STORAGE_CONSTANTS.SNAPSHOT_STORE_NAME, 'readwrite')
-  const store = transaction.objectStore(STORAGE_CONSTANTS.SNAPSHOT_STORE_NAME)
-
-  staleRecords.forEach((record) => {
-    store.delete(record.id)
-  })
-
-  await waitForTransaction(transaction)
-  debugLog('storage/snapshot-retention-pruned', {
-    removedCount: staleRecords.length,
-    limit: STORAGE_CONSTANTS.SNAPSHOT_HISTORY_LIMIT,
-  })
 }
 
 export async function saveBoardSnapshot(
@@ -554,4 +455,103 @@ export function savePersistedMode(mode: BoardMode): void {
   } catch (error) {
     debugError('storage/save-mode-failed', error)
   }
+}
+
+const createSnapshotSummary = (record: BoardSnapshotRecord): BoardSnapshotSummary => ({
+  id: record.id,
+  savedAt: record.savedAt,
+  source: record.source,
+  containerCount: Object.keys(record.state.containers).length,
+  bankCount: Object.keys(record.state.banks).length,
+  tileCount: Object.keys(record.state.tiles).length,
+})
+
+const waitForTransaction = (transaction: IDBTransaction): Promise<void> =>
+  new Promise((resolve, reject) => {
+    transaction.oncomplete = () => {
+      resolve()
+    }
+    transaction.onerror = () => {
+      reject(transaction.error ?? new Error('IndexedDB transaction failed'))
+    }
+    transaction.onabort = () => {
+      reject(transaction.error ?? new Error('IndexedDB transaction aborted'))
+    }
+  })
+
+const requestToPromise = <T>(request: IDBRequest<T>): Promise<T> =>
+  new Promise((resolve, reject) => {
+    request.onsuccess = () => {
+      resolve(request.result)
+    }
+    request.onerror = () => {
+      reject(request.error ?? new Error('IndexedDB request failed'))
+    }
+  })
+
+const openSnapshotsDatabase = (): Promise<IDBDatabase> =>
+  new Promise((resolve, reject) => {
+    if (!canAccessIndexedDb()) {
+      reject(new Error('IndexedDB unavailable'))
+      return
+    }
+
+    const request = window.indexedDB.open(
+      STORAGE_CONSTANTS.SNAPSHOT_DB_NAME,
+      STORAGE_CONSTANTS.SNAPSHOT_DB_VERSION,
+    )
+
+    request.onupgradeneeded = () => {
+      const db = request.result
+      const store = db.objectStoreNames.contains(STORAGE_CONSTANTS.SNAPSHOT_STORE_NAME)
+        ? request.transaction?.objectStore(STORAGE_CONSTANTS.SNAPSHOT_STORE_NAME)
+        : db.createObjectStore(STORAGE_CONSTANTS.SNAPSHOT_STORE_NAME, {
+          keyPath: 'id',
+        })
+
+      if (store && !store.indexNames.contains(SNAPSHOT_STORE_INDEX)) {
+        store.createIndex(SNAPSHOT_STORE_INDEX, SNAPSHOT_STORE_INDEX)
+      }
+    }
+
+    request.onsuccess = () => {
+      resolve(request.result)
+    }
+
+    request.onerror = () => {
+      reject(request.error ?? new Error('Failed to open snapshot database'))
+    }
+  })
+
+const loadAllSnapshotRecords = async (db: IDBDatabase): Promise<BoardSnapshotRecord[]> => {
+  const transaction = db.transaction(STORAGE_CONSTANTS.SNAPSHOT_STORE_NAME, 'readonly')
+  const store = transaction.objectStore(STORAGE_CONSTANTS.SNAPSHOT_STORE_NAME)
+  const records = await requestToPromise<BoardSnapshotRecord[]>(store.getAll())
+  await waitForTransaction(transaction)
+  return records
+}
+
+const applySnapshotRetentionPolicy = async (db: IDBDatabase): Promise<void> => {
+  const allRecords = await loadAllSnapshotRecords(db)
+  const excessCount = allRecords.length - STORAGE_CONSTANTS.SNAPSHOT_HISTORY_LIMIT
+  if (excessCount <= 0) {
+    return
+  }
+
+  const staleRecords = [...allRecords]
+    .sort((a, b) => a.savedAtMs - b.savedAtMs)
+    .slice(0, excessCount)
+
+  const transaction = db.transaction(STORAGE_CONSTANTS.SNAPSHOT_STORE_NAME, 'readwrite')
+  const store = transaction.objectStore(STORAGE_CONSTANTS.SNAPSHOT_STORE_NAME)
+
+  staleRecords.forEach((record) => {
+    store.delete(record.id)
+  })
+
+  await waitForTransaction(transaction)
+  debugLog('storage/snapshot-retention-pruned', {
+    removedCount: staleRecords.length,
+    limit: STORAGE_CONSTANTS.SNAPSHOT_HISTORY_LIMIT,
+  })
 }

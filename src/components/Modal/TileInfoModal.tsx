@@ -5,9 +5,9 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from 'react'
 import {
-  FatigueState,
+  House,
   TileType,
-  type FatigueState as FatigueStateValue,
+  type House as HouseValue,
   type Tile,
   type TileType as TileTypeValue,
   type Language,
@@ -28,7 +28,7 @@ type SaveTileInput = {
   tileId: string
   name: string
   notes: string
-  fatigueState: FatigueStateValue
+  house: HouseValue
 }
 
 type TileInfoModalProps = {
@@ -63,8 +63,8 @@ export function TileInfoModal({
     mode === 'edit' && tile ? tile.name : defaultCreateName,
   )
   const [notes, setNotes] = useState(() => (mode === 'edit' && tile ? tile.notes : ''))
-  const [fatigueState, setFatigueState] = useState<FatigueStateValue>(() =>
-    mode === 'edit' && tile ? tile.fatigueState : FatigueState.GREEN,
+  const [house, setHouse] = useState<HouseValue>(() =>
+    mode === 'edit' && tile ? tile.house : House.GREEN,
   )
 
   const effectiveTileType = useMemo(() => {
@@ -79,7 +79,7 @@ export function TileInfoModal({
     return null
   }
 
-  const fatigueEnabled = effectiveTileType === TileType.STAFF
+  const houseEnabled = effectiveTileType === TileType.STAFF
 
   const title =
     mode === 'create'
@@ -126,14 +126,14 @@ export function TileInfoModal({
     debugLog('TileInfoModal/save-submit', {
       tileId: tile.id,
       name: trimmedName,
-      fatigueState,
+      house,
     })
 
     onSaveTile({
       tileId: tile.id,
       name: trimmedName,
       notes,
-      fatigueState: fatigueEnabled ? fatigueState : FatigueState.GREEN,
+      house: houseEnabled ? house : House.GREEN,
     })
   }
 
@@ -149,7 +149,7 @@ export function TileInfoModal({
   const closeLabel = language === 'en' ? 'Close modal' : '閉じる'
   const nameLabel = language === 'en' ? 'Name' : '名前'
   const typeLabel = language === 'en' ? 'Type' : 'タイプ'
-  const fatigueLabel = language === 'en' ? 'Fatigue' : '疲労度'
+  const houseLabel = language === 'en' ? 'House' : 'ハウス'
   const notesLabel = language === 'en' ? 'Notes' : 'メモ'
   const zoneLabelLabel = language === 'en' ? 'Current Zone' : '現在の場所'
   const createdLabel = language === 'en' ? 'Created' : '作成日'
@@ -161,9 +161,10 @@ export function TileInfoModal({
   const optionalNotesPlaceholder = language === 'en' ? 'Optional notes' : 'メモ（任意）'
   const unknownZoneLabel = language === 'en' ? 'Unknown zone' : '不明な場所'
 
-  const greenLabel = language === 'en' ? 'Green' : '緑'
-  const yellowLabel = language === 'en' ? 'Yellow' : '黄'
-  const redLabel = language === 'en' ? 'Red' : '赤'
+  const paprikaLabel = t('paprika', language)
+  const turmericLabel = t('turmeric', language)
+  const rosemaryLabel = t('rosemary', language)
+  const basilLabel = t('basil', language)
 
   return (
     <div className={styles.modalBackdrop} onPointerDown={handleBackdropPointerDown}>
@@ -191,24 +192,25 @@ export function TileInfoModal({
             <span className={styles.staticValue}>{formatTileTypeLabel(effectiveTileType, language)}</span>
           </label>
 
-          {fatigueEnabled ? (
+          {houseEnabled ? (
             mode === 'edit' ? (
               <label className={styles.field}>
-                <span className={styles.fieldLabel}>{fatigueLabel}</span>
+                <span className={styles.fieldLabel}>{houseLabel}</span>
                 <select
                   className={styles.select}
-                  value={fatigueState}
-                  onChange={(event) => setFatigueState(event.target.value as FatigueStateValue)}
+                  value={house}
+                  onChange={(event) => setHouse(event.target.value as HouseValue)}
                 >
-                  <option value={FatigueState.GREEN}>{greenLabel}</option>
-                  <option value={FatigueState.YELLOW}>{yellowLabel}</option>
-                  <option value={FatigueState.RED}>{redLabel}</option>
+                  <option value={House.RED}>{paprikaLabel}</option>
+                  <option value={House.YELLOW}>{turmericLabel}</option>
+                  <option value={House.BLUE}>{rosemaryLabel}</option>
+                  <option value={House.GREEN}>{basilLabel}</option>
                 </select>
               </label>
             ) : (
               <label className={styles.field}>
-                <span className={styles.fieldLabel}>{fatigueLabel}</span>
-                <span className={styles.staticValue}>{greenLabel} (default)</span>
+                <span className={styles.fieldLabel}>{houseLabel}</span>
+                <span className={styles.staticValue}>{basilLabel} (default)</span>
               </label>
             )
           ) : null}

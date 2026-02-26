@@ -5,9 +5,10 @@
   --color-text: #222222;
   --color-muted: #666666;
 
-  --color-fatigue-green: #2f9e44;
-  --color-fatigue-yellow: #f08c00;
-  --color-fatigue-red: #e03131;
+  --color-house-green: #2f9e44;
+  --color-house-yellow: #f08c00;
+  --color-house-red: #e03131;
+  --color-house-blue: #1971c2;
 
   --space-1: 4px;
   --space-2: 8px;

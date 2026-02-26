@@ -40,6 +40,11 @@ export type TranslationKey =
     | 'newcomer_template'
     | 'container_template'
     | 'front_gate'
+    | 'house'
+    | 'paprika'
+    | 'turmeric'
+    | 'rosemary'
+    | 'basil'
 
 const translations: Record<Language, Record<TranslationKey, string>> = {
     en: {
@@ -82,6 +87,11 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
         newcomer_template: 'Newcomer template',
         container_template: 'Container template',
         front_gate: 'Front Gate',
+        house: 'House',
+        paprika: 'Paprika',
+        turmeric: 'Turmeric',
+        rosemary: 'Rosemary',
+        basil: 'Basil',
     },
     jp: {
         settings: '設定',
@@ -123,6 +133,11 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
         newcomer_template: '新入寮生 テンプレート',
         container_template: 'ポジション テンプレート',
         front_gate: '正門',
+        house: 'ハウス',
+        paprika: 'パプリカ',
+        turmeric: 'ターメリック',
+        rosemary: 'ローズマリー',
+        basil: 'バジル',
     },
 }
 

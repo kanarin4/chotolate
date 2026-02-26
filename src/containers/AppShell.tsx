@@ -10,17 +10,11 @@ import { Toolbar } from '../components/Toolbar/Toolbar'
 import { UndoSnackbar } from '../components/common/UndoSnackbar'
 import { useSearch } from '../hooks/useSearch'
 import { useUndo } from '../hooks/useUndo'
-import {
-  selectContainers,
-  selectContainersWithSearchMatches,
-  selectTilesByZone,
-  useAppStore,
-} from '../store'
-import { t } from '../utils/i18n'
-import type { NameTemplateType, Language } from '../types'
+import { selectContainers, selectContainersWithSearchMatches, selectTilesByZone, useAppStore } from '../store'
+import type { NameTemplateType } from '../types'
 import {
   BankType,
-  FatigueState,
+  House,
   TileType,
   type Bank,
   type BoardMode,
@@ -48,7 +42,7 @@ const TILE_CSV_HEADERS = [
   'currentZoneId',
   'currentZoneLabel',
   'notes',
-  'fatigueState',
+  'house',
   'orderIndex',
 ] as const
 
@@ -103,8 +97,8 @@ const mapBanksByType = (banksRecord: Record<string, Bank>): Partial<Record<BankT
   return mapped
 }
 
-const isValidFatigueState = (value: string): value is Tile['fatigueState'] =>
-  value === FatigueState.GREEN || value === FatigueState.YELLOW || value === FatigueState.RED
+const isValidHouse = (value: string): value is Tile['house'] =>
+  value === House.GREEN || value === House.YELLOW || value === House.RED || value === House.BLUE
 
 const resolveTileTypeFromCsv = (value: string): TileTypeValue | null => {
   const normalized = value.trim().toLowerCase()
@@ -152,8 +146,8 @@ export function AppShell() {
   const createTile = useAppStore((state) => state.createTile)
   const updateTile = useAppStore((state) => state.updateTile)
   const deleteTile = useAppStore((state) => state.deleteTile)
-  const cycleFatigue = useAppStore((state) => state.cycleFatigue)
-  const setFatigue = useAppStore((state) => state.setFatigue)
+  const cycleHouse = useAppStore((state) => state.cycleHouse)
+  const setHouse = useAppStore((state) => state.setHouse)
   const loadBoard = useAppStore((state) => state.loadBoard)
   const saveBoard = useAppStore((state) => state.saveBoard)
   const pushUndo = useAppStore((state) => state.pushUndo)
@@ -515,7 +509,7 @@ export function AppShell() {
         currentZoneId: tile.currentZoneId,
         currentZoneLabel: getZoneLabel(tile.currentZoneId, containersRecord, banksRecord),
         notes: tile.notes,
-        fatigueState: tile.fatigueState,
+        house: tile.house,
         orderIndex: String(tile.orderIndex),
       }))
 
@@ -622,10 +616,10 @@ export function AppShell() {
             }
           }
 
-          const fatigueRaw = (row.fatigueState ?? '').toLowerCase()
-          const normalizedFatigue: Tile['fatigueState'] = isValidFatigueState(fatigueRaw)
-            ? fatigueRaw
-            : FatigueState.GREEN
+          const houseRaw = (row.house ?? '').toLowerCase()
+          const normalizedHouse: Tile['house'] = isValidHouse(houseRaw)
+            ? houseRaw
+            : House.GREEN
 
           const nextOrder = zoneOrder.get(resolvedZoneId) ?? 0
           zoneOrder.set(resolvedZoneId, nextOrder + 1)
@@ -639,7 +633,7 @@ export function AppShell() {
             currentZoneId: resolvedZoneId,
             name,
             tileType: parsedTileType,
-            fatigueState: parsedTileType === TileType.NEWCOMER ? FatigueState.GREEN : normalizedFatigue,
+            house: parsedTileType === TileType.NEWCOMER ? House.GREEN : normalizedHouse,
             notes: row.notes ?? '',
             orderIndex: nextOrder,
             createdAt: timestamp,
@@ -861,16 +855,17 @@ export function AppShell() {
       tileId: string
       name: string
       notes: string
-      fatigueState: Tile['fatigueState']
+      house: Tile['house']
     }) => {
       updateTile(payload.tileId, {
         name: payload.name,
         notes: payload.notes,
+        house: payload.house,
       })
 
       const editingTile = tilesRecord[payload.tileId]
       if (editingTile?.tileType === TileType.STAFF) {
-        setFatigue(payload.tileId, payload.fatigueState)
+        setHouse(payload.tileId, payload.house)
       }
 
       debugLog('AppShell/save-tile', payload)
@@ -878,7 +873,7 @@ export function AppShell() {
       closeModal()
       clearTileSelection()
     },
-    [clearTileSelection, closeModal, setFatigue, tilesRecord, updateTile],
+    [clearTileSelection, closeModal, setHouse, tilesRecord, updateTile],
   )
 
   const handleDeleteTile = useCallback(
@@ -988,7 +983,7 @@ export function AppShell() {
             selectedTileIds={selectedTileIdSet}
             searchMatches={searchMatches}
             isSearchActive={isSearchActive}
-            onFatigueToggle={cycleFatigue}
+            onHouseToggle={cycleHouse}
             onTileInfoClick={handleOpenTileInfo}
             onTileNameCommit={handleTileNameCommit}
             onTileSelect={handleTileSelect}
@@ -1061,7 +1056,7 @@ export function AppShell() {
                 onStartEditName={handleStartEditName}
                 onCommitEditName={handleCommitEditName}
                 onCancelEditName={handleCancelEditName}
-                onFatigueToggle={cycleFatigue}
+                onHouseToggle={cycleHouse}
                 onTileInfoClick={handleOpenTileInfo}
                 onTileNameCommit={handleTileNameCommit}
                 onTileSelect={handleTileSelect}
@@ -1078,7 +1073,7 @@ export function AppShell() {
             selectedTileIds={selectedTileIdSet}
             searchMatches={searchMatches}
             isSearchActive={isSearchActive}
-            onFatigueToggle={cycleFatigue}
+            onHouseToggle={cycleHouse}
             onTileInfoClick={handleOpenTileInfo}
             onTileNameCommit={handleTileNameCommit}
             onTileSelect={handleTileSelect}
@@ -1096,7 +1091,7 @@ export function AppShell() {
           selectedTileIds={selectedTileIdSet}
           searchMatches={searchMatches}
           isSearchActive={isSearchActive}
-          onFatigueToggle={cycleFatigue}
+          onHouseToggle={cycleHouse}
           onTileInfoClick={handleOpenTileInfo}
           onTileNameCommit={handleTileNameCommit}
           onTileSelect={handleTileSelect}

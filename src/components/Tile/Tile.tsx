@@ -10,12 +10,12 @@ import {
 import type { Tile as TileModel } from '../../types'
 import { TileType } from '../../types'
 import { debugLog } from '../../utils/debug'
-import { FatigueIndicator } from './FatigueIndicator'
+import { HouseIndicator } from './HouseIndicator'
 import styles from './Tile.module.css'
 
 type TileProps = {
   tile: TileModel
-  onFatigueToggle?: (tileId: string) => void
+  onHouseToggle?: (tileId: string) => void
   onInfoClick?: (tileId: string) => void
   onNameCommit?: (tileId: string, nextName: string) => void
   onSelect?: (tileId: string, additive: boolean) => void
@@ -27,7 +27,7 @@ type TileProps = {
 
 function TileComponent({
   tile,
-  onFatigueToggle,
+  onHouseToggle,
   onInfoClick,
   onNameCommit,
   onSelect,
@@ -38,7 +38,7 @@ function TileComponent({
 }: TileProps) {
   const [isEditingName, setIsEditingName] = useState(false)
   const [nameDraft, setNameDraft] = useState(tile.name)
-  const supportsFatigue = tile.tileType === TileType.STAFF
+  const supportsHouse = tile.tileType === TileType.STAFF
 
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: tile.id,
@@ -54,13 +54,13 @@ function TileComponent({
     transform: !isDragging && transform ? CSS.Transform.toString(transform) : undefined,
   }
 
-  const handleFatigueToggle = () => {
-    if (!supportsFatigue) {
+  const handleHouseToggle = () => {
+    if (!supportsHouse) {
       return
     }
 
-    debugLog('Tile/fatigue-toggle-click', { tileId: tile.id, currentFatigue: tile.fatigueState })
-    onFatigueToggle?.(tile.id)
+    debugLog('Tile/house-toggle-click', { tileId: tile.id, currentHouse: tile.house })
+    onHouseToggle?.(tile.id)
   }
 
   const handleInfoClick = (event: MouseEvent<HTMLButtonElement>) => {
@@ -156,8 +156,8 @@ function TileComponent({
       }}
       {...dragInteractionProps}
     >
-      {supportsFatigue ? (
-        <FatigueIndicator state={tile.fatigueState} onToggle={handleFatigueToggle} />
+      {supportsHouse ? (
+        <HouseIndicator house={tile.house} onToggle={handleHouseToggle} />
       ) : null}
       {isEditingName ? (
         <input

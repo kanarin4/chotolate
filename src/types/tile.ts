@@ -5,13 +5,14 @@ export const TileType = {
 
 export type TileType = (typeof TileType)[keyof typeof TileType]
 
-export const FatigueState = {
-  GREEN: 'green',
-  YELLOW: 'yellow',
+export const House = {
   RED: 'red',
+  YELLOW: 'yellow',
+  BLUE: 'blue',
+  GREEN: 'green',
 } as const
 
-export type FatigueState = (typeof FatigueState)[keyof typeof FatigueState]
+export type House = (typeof House)[keyof typeof House]
 
 export interface Tile {
   id: string
@@ -19,7 +20,7 @@ export interface Tile {
   currentZoneId: string
   name: string
   tileType: TileType
-  fatigueState: FatigueState
+  house: House
   notes: string
   orderIndex: number
   createdAt: string

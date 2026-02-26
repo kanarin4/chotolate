@@ -11,7 +11,7 @@ type ContainerGridProps = {
   selectedTileIds: Set<string>
   searchMatches: Set<string>
   isSearchActive: boolean
-  onFatigueToggle?: (tileId: string) => void
+  onHouseToggle?: (tileId: string) => void
   onInfoClick?: (tileId: string) => void
   onTileNameCommit?: (tileId: string, nextName: string) => void
   onTileSelect?: (tileId: string, additive: boolean) => void
@@ -25,7 +25,7 @@ function TileSection({
   selectedTileIds,
   searchMatches,
   isSearchActive,
-  onFatigueToggle,
+  onHouseToggle,
   onInfoClick,
   onTileNameCommit,
   onTileSelect,
@@ -37,7 +37,7 @@ function TileSection({
   selectedTileIds: Set<string>
   searchMatches: Set<string>
   isSearchActive: boolean
-  onFatigueToggle?: (tileId: string) => void
+  onHouseToggle?: (tileId: string) => void
   onInfoClick?: (tileId: string) => void
   onTileNameCommit?: (tileId: string, nextName: string) => void
   onTileSelect?: (tileId: string, additive: boolean) => void
@@ -64,7 +64,7 @@ function TileSection({
               isSelected={selectedTileIds.has(tile.id)}
               isSearchActive={isSearchActive}
               isSearchMatch={searchMatches.has(tile.id)}
-              onFatigueToggle={onFatigueToggle}
+              onHouseToggle={onHouseToggle}
               onInfoClick={onInfoClick}
               onNameCommit={onTileNameCommit}
               onSelect={onTileSelect}
@@ -84,7 +84,7 @@ export function ContainerGrid({
   selectedTileIds,
   searchMatches,
   isSearchActive,
-  onFatigueToggle,
+  onHouseToggle,
   onInfoClick,
   onTileNameCommit,
   onTileSelect,
@@ -107,7 +107,7 @@ export function ContainerGrid({
           selectedTileIds={selectedTileIds}
           searchMatches={searchMatches}
           isSearchActive={isSearchActive}
-          onFatigueToggle={onFatigueToggle}
+          onHouseToggle={onHouseToggle}
           onInfoClick={onInfoClick}
           onTileNameCommit={onTileNameCommit}
           onTileSelect={onTileSelect}
@@ -123,7 +123,7 @@ export function ContainerGrid({
           selectedTileIds={selectedTileIds}
           searchMatches={searchMatches}
           isSearchActive={isSearchActive}
-          onFatigueToggle={onFatigueToggle}
+          onHouseToggle={onHouseToggle}
           onInfoClick={onInfoClick}
           onTileNameCommit={onTileNameCommit}
           onTileSelect={onTileSelect}

@@ -2,7 +2,7 @@ import { v4 as uuidv4 } from 'uuid'
 import type { StateCreator } from 'zustand'
 import {
   BankType,
-  FatigueState,
+  House,
   TileType,
   type Bank,
   type Board,
@@ -138,7 +138,7 @@ const createInitialBoardState = (): Pick<BoardSlice, 'board' | 'containers' | 'b
       currentZoneId: firstContainerId,
       name: 'Staff 2',
       tileType: TileType.STAFF,
-      fatigueState: FatigueState.GREEN,
+      house: House.GREEN,
       notes: '',
       orderIndex: 0,
       createdAt: timestamp,
@@ -150,7 +150,7 @@ const createInitialBoardState = (): Pick<BoardSlice, 'board' | 'containers' | 'b
       currentZoneId: staffBankId,
       name: 'Staff 1',
       tileType: TileType.STAFF,
-      fatigueState: FatigueState.YELLOW,
+      house: House.YELLOW,
       notes: '',
       orderIndex: 0,
       createdAt: timestamp,
@@ -162,7 +162,7 @@ const createInitialBoardState = (): Pick<BoardSlice, 'board' | 'containers' | 'b
       currentZoneId: newcomerBankId,
       name: 'S0001',
       tileType: TileType.NEWCOMER,
-      fatigueState: FatigueState.GREEN,
+      house: House.GREEN,
       notes: '',
       orderIndex: 0,
       createdAt: timestamp,
@@ -174,7 +174,7 @@ const createInitialBoardState = (): Pick<BoardSlice, 'board' | 'containers' | 'b
       currentZoneId: completedBankId,
       name: 'S0002',
       tileType: TileType.NEWCOMER,
-      fatigueState: FatigueState.GREEN,
+      house: House.GREEN,
       notes: '',
       orderIndex: 0,
       createdAt: timestamp,
@@ -460,7 +460,7 @@ export const createBoardSlice: StateCreator<AppStore, [], [], BoardSlice> = (set
       currentZoneId: targetZoneId,
       name: payload.name,
       tileType: payload.tileType,
-      fatigueState: FatigueState.GREEN,
+      house: House.GREEN,
       notes: payload.notes ?? '',
       orderIndex: getMaxOrderForZone(tiles, targetZoneId) + 1,
       createdAt: timestamp,
@@ -650,8 +650,8 @@ export const createBoardSlice: StateCreator<AppStore, [], [], BoardSlice> = (set
     })
   },
 
-  cycleFatigue: (id: string) => {
-    logBoardAction('cycleFatigue', { id })
+  cycleHouse: (id: string) => {
+    logBoardAction('cycleHouse', { id })
 
     set((state) => {
       const tile = state.tiles[id]
@@ -663,19 +663,22 @@ export const createBoardSlice: StateCreator<AppStore, [], [], BoardSlice> = (set
         return state
       }
 
-      const nextFatigue =
-        tile.fatigueState === FatigueState.GREEN
-          ? FatigueState.YELLOW
-          : tile.fatigueState === FatigueState.YELLOW
-            ? FatigueState.RED
-            : FatigueState.GREEN
+      // Cycle: red -> yellow -> blue -> green -> red
+      const nextHouse =
+        tile.house === House.RED
+          ? House.YELLOW
+          : tile.house === House.YELLOW
+            ? House.BLUE
+            : tile.house === House.BLUE
+              ? House.GREEN
+              : House.RED
 
       return {
         tiles: {
           ...state.tiles,
           [id]: {
             ...tile,
-            fatigueState: nextFatigue,
+            house: nextHouse,
             updatedAt: nowIso(),
           },
         },
@@ -683,8 +686,8 @@ export const createBoardSlice: StateCreator<AppStore, [], [], BoardSlice> = (set
     })
   },
 
-  setFatigue: (id: string, fatigueState: FatigueState) => {
-    logBoardAction('setFatigue', { id, fatigueState })
+  setHouse: (id: string, house: House) => {
+    logBoardAction('setHouse', { id, house })
 
     set((state) => {
       const tile = state.tiles[id]
@@ -701,7 +704,7 @@ export const createBoardSlice: StateCreator<AppStore, [], [], BoardSlice> = (set
           ...state.tiles,
           [id]: {
             ...tile,
-            fatigueState,
+            house,
             updatedAt: nowIso(),
           },
         },

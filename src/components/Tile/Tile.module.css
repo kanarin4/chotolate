@@ -68,7 +68,7 @@
   border-style: dashed;
 }
 
-.fatigueIndicator {
+.houseIndicator {
   width: 18px;
   height: 18px;
   border: 0;
@@ -81,19 +81,23 @@
   flex: 0 0 auto;
 }
 
-.fatigue_green {
-  background: var(--color-fatigue-green);
+.house_green {
+  background: var(--color-house-green);
 }
 
-.fatigue_yellow {
-  background: var(--color-fatigue-yellow);
+.house_yellow {
+  background: var(--color-house-yellow);
 }
 
-.fatigue_red {
-  background: var(--color-fatigue-red);
+.house_red {
+  background: var(--color-house-red);
 }
 
-.fatigueShape {
+.house_blue {
+  background: var(--color-house-blue);
+}
+
+.houseShape {
   font-size: 9px;
   line-height: 1;
 }
