@@ -1,73 +1,60 @@
-# React + TypeScript + Vite
+# Chotolate
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+**Chotolate** is a dynamic spatial management tool designed for the logistics of dorm move-in days. It transforms complicated coordination into a visual, drag-and-drop experience, allowing organizers to manage staff and newcomers with ease across multiple locations.
 
-Currently, two official plugins are available:
+## 🚀 Core Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Spatial Organization**: Represent physical locations as resizable "Containers" and individuals as interactive "Tiles."
+- **Staff & Newcomer Distinction**: Distinct visual styles and behaviors for different person types.
+- **House System**: A coordination system designed for use in a dorm with four specific houses (spice-themed):
+  - **P** - Paprika (Red)
+  - **T** - Turmeric (Yellow)
+  - **R** - Rosemary (Blue)
+  - **B** - Basil (Green)
+  - *First real-world usage scheduled for the end of March 2026.*
+- **Fluid Drag & Drop**: Built on `@dnd-kit` for a responsive and performant user experience.
+- **Bi-lingual Support**: Full localization for English and Japanese to support a multi-national dorm community.
+- **Persistence & Data Portability**: Local storage persistence with the ability to export/import board states via CSV.
 
-## React Compiler
+## 🛠 Tech Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Framework**: [React 19](https://react.dev/)
+- **State Management**: [Zustand](https://zustand-demo.pmnd.rs/)
+- **Drag & Drop**: [@dnd-kit](https://dndkit.com/)
+- **Build Tool**: [Vite](https://vitejs.dev/)
+- **Type Safety**: [TypeScript](https://www.typescriptlang.org/)
+- **Styling**: Vanilla CSS with CSS Variables for theme management.
 
-## Expanding the ESLint configuration
+## 🏃 Getting Started
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### Prerequisites
+- [Node.js](https://nodejs.org/) (Latest LTS recommended)
+- [npm](https://www.npmjs.com/)
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+### Installation
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/your-org/chotolate.git
+   cd chotolate
+   ```
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Start the development server:
+   ```bash
+   npm run dev
+   ```
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## 🗺 Roadmap & Future Vision
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+Chotolate is currently an MVP focused on solo coordination. We have plans to evolve it into a professional logistics platform:
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+- **Realtime Collaboration**: Implementing shared viewership so staff on the ground can view updates in realtime from their mobile devices.
+- **Multi-domain Expansion**: Generalizing the architecture to support various scenarios such as large-scale event management and multi-position staff tracking.
+- **Enterprise Backend**: Attaching a secure backend to support multi-organization multi-tenancy, allowing different groups to manage their own private instances.
+- **Mobile Native experience**: Enhancing the mobile UI to provide a "pwa-plus" experience for staff in the field.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## 📄 License
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+This project is private and proprietary.
