@@ -23,21 +23,21 @@ export interface DragState {
 
 export type ModalState =
   | {
-      type: 'tile_info'
-      entityId: string
-    }
+    type: 'tile_info'
+    entityId: string
+  }
   | {
-      type: 'tile_create'
-      tileType: TileType
-    }
+    type: 'tile_create'
+    tileType: TileType
+  }
   | {
-      type: 'container_edit'
-      entityId: string
-    }
+    type: 'container_edit'
+    entityId: string
+  }
   | {
-      type: 'delete_confirm'
-      entityId: string
-    }
+    type: 'delete_confirm'
+    entityId: string
+  }
 
 export type ModalType = ModalState['type']
 
@@ -57,3 +57,4 @@ export interface ContainerDeleteUndoEntry {
 
 export type UndoEntry = TileDeleteUndoEntry | ContainerDeleteUndoEntry
 export type UndoType = UndoEntry['type']
+export type Language = 'en' | 'jp'

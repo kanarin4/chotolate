@@ -177,11 +177,9 @@ function ContainerComponent({
   return (
     <section
       ref={setNodeRef}
-      className={`${styles.container} ${isOverlapping ? styles.containerOverlapWarning : ''} ${
-        isSearchActive && hasSearchMatch ? styles.containerSearchMatch : ''
-      } ${isSearchActive && !hasSearchMatch ? styles.containerSearchDimmed : ''} ${
-        isOver && canAcceptDrop ? styles.containerDropTarget : ''
-      }`}
+      className={`${styles.container} ${isOverlapping ? styles.containerOverlapWarning : ''} ${isSearchActive && hasSearchMatch ? styles.containerSearchMatch : ''
+        } ${isSearchActive && !hasSearchMatch ? styles.containerSearchDimmed : ''} ${isOver && canAcceptDrop ? styles.containerDropTarget : ''
+        }`}
       style={{
         left: container.x,
         top: container.y,

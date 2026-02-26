@@ -16,7 +16,8 @@ import {
   selectTilesByZone,
   useAppStore,
 } from '../store'
-import type { NameTemplateType } from '../types'
+import { t } from '../utils/i18n'
+import type { NameTemplateType, Language } from '../types'
 import {
   BankType,
   FatigueState,
@@ -143,6 +144,7 @@ export function AppShell() {
   const mode = useAppStore((state) => state.mode)
   const nameTemplates = useAppStore((state) => state.nameTemplates)
   const selectedTileIds = useAppStore((state) => state.selectedTileIds)
+  const language = useAppStore((state) => state.language)
 
   const createContainer = useAppStore((state) => state.createContainer)
   const updateContainer = useAppStore((state) => state.updateContainer)
@@ -162,6 +164,7 @@ export function AppShell() {
   const clearTileSelection = useAppStore((state) => state.clearTileSelection)
   const setMode = useAppStore((state) => state.setMode)
   const setNameTemplate = useAppStore((state) => state.setNameTemplate)
+  const setLanguage = useAppStore((state) => state.setLanguage)
 
   const containers = useAppStore(selectContainers)
   const tilesByZone = useAppStore(selectTilesByZone)
@@ -990,6 +993,7 @@ export function AppShell() {
             onTileNameCommit={handleTileNameCommit}
             onTileSelect={handleTileSelect}
             onClose={handleCloseDrawers}
+            language={language}
           />
         </aside>
 
@@ -1028,6 +1032,8 @@ export function AppShell() {
             isNewcomerDrawerOpen={isNewcomerDrawerOpen}
             onToggleNewcomerDrawer={handleToggleNewcomerDrawer}
             newcomerBankTileCount={newcomerBankTileCount}
+            language={language}
+            onLanguageChange={setLanguage}
           />
 
           <Board
@@ -1036,7 +1042,7 @@ export function AppShell() {
             canvasHeight={boardCanvasSize.height}
             zoom={boardZoom}
             isEmpty={containers.length === 0}
-            emptyLabel="No containers yet"
+            emptyLabel={language === 'en' ? 'No containers yet' : 'コンテナがまだありません'}
             onBackgroundPointerDown={handleBoardBackgroundPointerDown}
           >
             {containers.map((container) => (
@@ -1077,6 +1083,7 @@ export function AppShell() {
             onTileNameCommit={handleTileNameCommit}
             onTileSelect={handleTileSelect}
             onClose={handleCloseDrawers}
+            language={language}
           />
         </aside>
       </div>
@@ -1094,6 +1101,7 @@ export function AppShell() {
           onTileNameCommit={handleTileNameCommit}
           onTileSelect={handleTileSelect}
           onClose={handleCloseDrawers}
+          language={language}
         />
       </footer>
 
@@ -1113,17 +1121,27 @@ export function AppShell() {
           onCreateTile={handleCreateTile}
           onSaveTile={handleSaveTile}
           onDeleteTile={handleDeleteTile}
+          language={language}
         />
       ) : null}
 
       {activeUndo && remainingMs > 0 ? (
         <UndoSnackbar
-          label={activeUndo.type === 'tile_delete' ? 'Tile deleted' : 'Deleted'}
+          label={
+            activeUndo.type === 'tile_delete'
+              ? language === 'en'
+                ? 'Tile deleted'
+                : 'タイルを削除しました'
+              : language === 'en'
+                ? 'Deleted'
+                : '削除しました'
+          }
           remainingMs={remainingMs}
           onUndo={() => {
             handleUndo()
           }}
           onDismiss={dismissActiveUndo}
+          language={language}
         />
       ) : null}
     </div>

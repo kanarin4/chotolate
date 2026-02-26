@@ -136,13 +136,10 @@ function TileComponent({
     <article
       ref={setNodeRef}
       style={dragStyle}
-      className={`${styles.tile} ${
-        tile.tileType === TileType.STAFF ? styles.staffTile : styles.newcomerTile
-      } ${draggable && !isEditingName ? styles.tileDraggable : ''} ${
-        isDragging ? styles.tileDraggingSource : ''
-      } ${shouldHighlightMatch ? styles.tileSearchMatch : ''} ${
-        shouldDimBySearch ? styles.tileSearchDimmed : ''
-      } ${isSelected ? styles.tileSelected : ''}`}
+      className={`${styles.tile} ${tile.tileType === TileType.STAFF ? styles.staffTile : styles.newcomerTile
+        } ${draggable && !isEditingName ? styles.tileDraggable : ''} ${isDragging ? styles.tileDraggingSource : ''
+        } ${shouldHighlightMatch ? styles.tileSearchMatch : ''} ${shouldDimBySearch ? styles.tileSearchDimmed : ''
+        } ${isSelected ? styles.tileSelected : ''}`}
       onPointerDown={handleTilePointerDown}
       aria-selected={isSelected}
       data-selected={isSelected}

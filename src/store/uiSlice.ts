@@ -19,6 +19,7 @@ export const createUISlice: StateCreator<AppStore, [], [], UISlice> = (set, get)
   },
   modalState: null,
   undoStack: [],
+  language: 'en',
 
   setMode: (mode) => {
     logUIAction('setMode', { mode })
@@ -187,5 +188,10 @@ export const createUISlice: StateCreator<AppStore, [], [], UISlice> = (set, get)
     set((state) => ({
       undoStack: state.undoStack.filter((entry) => entry.timestamp >= cutoff),
     }))
+  },
+
+  setLanguage: (language) => {
+    logUIAction('setLanguage', { language })
+    set({ language })
   },
 })

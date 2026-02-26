@@ -1,4 +1,5 @@
 import { debugLog } from '../../utils/debug'
+import type { Language } from '../../types'
 import styles from './common.module.css'
 
 type UndoSnackbarProps = {
@@ -6,9 +7,10 @@ type UndoSnackbarProps = {
   remainingMs: number
   onUndo: () => void
   onDismiss: () => void
+  language: Language
 }
 
-export function UndoSnackbar({ label, remainingMs, onUndo, onDismiss }: UndoSnackbarProps) {
+export function UndoSnackbar({ label, remainingMs, onUndo, onDismiss, language }: UndoSnackbarProps) {
   const remainingSeconds = Math.max(0, Math.ceil(remainingMs / 1000))
 
   const handleUndo = () => {
@@ -21,12 +23,14 @@ export function UndoSnackbar({ label, remainingMs, onUndo, onDismiss }: UndoSnac
     onDismiss()
   }
 
+  const undoLabel = language === 'en' ? 'Undo' : '元に戻す'
+
   return (
     <section className={styles.undoSnackbar} role="status" aria-live="polite">
       <span>{label}</span>
       <div className={styles.undoActions}>
         <button type="button" className={styles.undoButton} onClick={handleUndo}>
-          Undo ({remainingSeconds}s)
+          {undoLabel} ({remainingSeconds}s)
         </button>
         <button type="button" className={styles.dismissButton} onClick={handleDismiss} aria-label="Dismiss undo">
           x

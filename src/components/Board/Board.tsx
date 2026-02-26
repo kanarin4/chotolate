@@ -59,6 +59,7 @@ export const Board = forwardRef<HTMLDivElement, BoardProps>(function Board(
   )
 
   const handlePointerDown = useCallback((event: PointerEvent<HTMLDivElement>) => {
+    // Middle button for panning
     if (event.button !== 1) {
       return
     }

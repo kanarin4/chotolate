@@ -311,6 +311,29 @@
   display: none;
 }
 
+.languageToggle {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.languageButton {
+  flex: 1;
+  height: 28px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  transition: all 120ms ease;
+}
+
+.languageButtonActive {
+  background: #2f6feb;
+  border-color: #2f6feb;
+  color: #fff;
+}
+
 .snapshotHeader {
   display: flex;
   align-items: center;

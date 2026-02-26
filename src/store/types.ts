@@ -13,6 +13,7 @@ import type {
   TileType,
   UndoEntry,
   Container,
+  Language,
 } from '../types'
 
 export type ContainerChanges = Partial<
@@ -73,6 +74,7 @@ export interface UISlice {
   nameTemplates: NameTemplates
   modalState: ModalState | null
   undoStack: UndoEntry[]
+  language: Language
 
   setMode: (mode: BoardMode) => void
   setSearchQuery: (searchQuery: string) => void
@@ -94,6 +96,7 @@ export interface UISlice {
   pushUndo: (entry: UndoEntry) => void
   popUndo: () => UndoEntry | null
   clearExpiredUndo: () => void
+  setLanguage: (language: Language) => void
 }
 
 export type AppStore = BoardSlice & UISlice

@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from 'react'
+import { t } from '../../utils/i18n'
+import type { Language } from '../../types'
 import type { BoardSnapshotSummary } from '../../utils/storage'
 import {
   TileType,
@@ -21,6 +23,8 @@ type SettingsMenuProps = {
   onRefreshSnapshots: () => Promise<void> | void
   onRestoreSnapshot: (snapshotId: string) => Promise<void> | void
   onCaptureSnapshot: () => Promise<void> | void
+  language: Language
+  onLanguageChange: (language: Language) => void
 }
 
 export function SettingsMenu({
@@ -36,6 +40,8 @@ export function SettingsMenu({
   onRefreshSnapshots,
   onRestoreSnapshot,
   onCaptureSnapshot,
+  language,
+  onLanguageChange,
 }: SettingsMenuProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [staffNameDraft, setStaffNameDraft] = useState('')
@@ -168,33 +174,53 @@ export function SettingsMenu({
         className={styles.settingsButton}
         onClick={() => setIsOpen((open) => !open)}
       >
-        Settings
+        {t('settings', language)}
       </button>
 
       {isOpen ? (
         <section className={styles.settingsPanel}>
           <div className={styles.settingsSection}>
-            <h4 className={styles.settingsHeading}>Data</h4>
+            <h4 className={styles.settingsHeading}>{t('language', language)}</h4>
+            <div className={styles.languageToggle}>
+              <button
+                type="button"
+                className={`${styles.languageButton} ${language === 'en' ? styles.languageButtonActive : ''}`}
+                onClick={() => onLanguageChange('en')}
+              >
+                {t('en', language)}
+              </button>
+              <button
+                type="button"
+                className={`${styles.languageButton} ${language === 'jp' ? styles.languageButtonActive : ''}`}
+                onClick={() => onLanguageChange('jp')}
+              >
+                {t('jp', language)}
+              </button>
+            </div>
+          </div>
+
+          <div className={styles.settingsSection}>
+            <h4 className={styles.settingsHeading}>{t('data', language) || 'Data'}</h4>
             <div className={styles.settingsActions}>
               <button type="button" className={styles.settingsActionButton} onClick={onExportBoard}>
-                Export board
+                {t('export_board', language)}
               </button>
               <button
                 type="button"
                 className={styles.settingsActionButton}
                 onClick={() => fileInputRef.current?.click()}
               >
-                Import board
+                {t('import_board', language)}
               </button>
               <button type="button" className={styles.settingsActionButton} onClick={onExportCsv}>
-                Export CSV
+                {t('export_csv', language)}
               </button>
               <button
                 type="button"
                 className={styles.settingsActionButton}
                 onClick={() => csvFileInputRef.current?.click()}
               >
-                Import CSV
+                {t('import_csv', language)}
               </button>
               <input
                 ref={fileInputRef}
@@ -214,10 +240,10 @@ export function SettingsMenu({
           </div>
 
           <div className={styles.settingsSection}>
-            <h4 className={styles.settingsHeading}>Default Names</h4>
+            <h4 className={styles.settingsHeading}>{t('default_names', language)}</h4>
             <div className={styles.templateGrid}>
               <label className={styles.quickAddLabel}>
-                <span>Staff template</span>
+                <span>{t('staff_template', language)}</span>
                 <input
                   type="text"
                   className={styles.quickAddInput}
@@ -227,7 +253,7 @@ export function SettingsMenu({
                 />
               </label>
               <label className={styles.quickAddLabel}>
-                <span>Newcomer template</span>
+                <span>{t('newcomer_template', language)}</span>
                 <input
                   type="text"
                   className={styles.quickAddInput}
@@ -237,7 +263,7 @@ export function SettingsMenu({
                 />
               </label>
               <label className={styles.quickAddLabel}>
-                <span>Container template</span>
+                <span>{t('container_template', language)}</span>
                 <input
                   type="text"
                   className={styles.quickAddInput}
@@ -250,14 +276,16 @@ export function SettingsMenu({
           </div>
 
           <div className={styles.settingsSection}>
-            <h4 className={styles.settingsHeading}>Quick Add (Tab)</h4>
+            <h4 className={styles.settingsHeading}>{t('quick_add', language)}</h4>
             <p className={styles.settingsHint}>
-              Enter a name and press Tab to add repeatedly. Empty name uses current defaults.
+              {language === 'en'
+                ? 'Enter a name and press Tab to add repeatedly. Empty name uses current defaults.'
+                : '名前を入力してTabを押すと連続で追加できます。空欄の場合は現在のデフォルト名が使用されます。'}
             </p>
 
             <div className={styles.quickAddRow}>
               <label className={styles.quickAddLabel}>
-                <span>Staff</span>
+                <span>{t('staff', language)}</span>
                 <input
                   type="text"
                   className={styles.quickAddInput}
@@ -272,13 +300,13 @@ export function SettingsMenu({
                 className={styles.quickAddButton}
                 onClick={handleQuickAddStaff}
               >
-                Add
+                {t('add', language)}
               </button>
             </div>
 
             <div className={styles.quickAddRow}>
               <label className={styles.quickAddLabel}>
-                <span>Newcomer</span>
+                <span>{t('newcomer', language)}</span>
                 <input
                   type="text"
                   className={styles.quickAddInput}
@@ -293,18 +321,18 @@ export function SettingsMenu({
                 className={styles.quickAddButton}
                 onClick={handleQuickAddNewcomer}
               >
-                Add
+                {t('add', language)}
               </button>
             </div>
 
             <p className={styles.quickAddSummary}>
-              Added this session: {staffAddedCount} staff / {newcomerAddedCount} newcomers
+              {t('added_this_session', language)}: {staffAddedCount} {t('staff', language)} / {newcomerAddedCount} {t('newcomer', language)}
             </p>
           </div>
 
           <div className={styles.settingsSection}>
             <div className={styles.snapshotHeader}>
-              <h4 className={styles.settingsHeading}>Snapshots</h4>
+              <h4 className={styles.settingsHeading}>{t('snapshots', language)}</h4>
               <div className={styles.settingsActions}>
                 <button
                   type="button"
@@ -312,7 +340,7 @@ export function SettingsMenu({
                   onClick={handleCaptureSnapshot}
                   disabled={isCapturingSnapshot}
                 >
-                  {isCapturingSnapshot ? 'Saving...' : 'Save now'}
+                  {isCapturingSnapshot ? t('saving', language) : t('save_now', language)}
                 </button>
                 <button
                   type="button"
@@ -325,13 +353,13 @@ export function SettingsMenu({
                   }}
                   disabled={isRefreshingSnapshots}
                 >
-                  {isRefreshingSnapshots ? 'Refreshing...' : 'Refresh'}
+                  {isRefreshingSnapshots ? t('refreshing', language) : t('refresh', language)}
                 </button>
               </div>
             </div>
 
             {snapshots.length === 0 ? (
-              <p className={styles.settingsHint}>No snapshots yet.</p>
+              <p className={styles.settingsHint}>{t('no_snapshots', language)}</p>
             ) : (
               <ul className={styles.snapshotList}>
                 {snapshots.map((snapshot) => (
@@ -340,7 +368,7 @@ export function SettingsMenu({
                       <span>{new Date(snapshot.savedAt).toLocaleString()}</span>
                       <span className={styles.snapshotType}>{snapshot.source}</span>
                       <span>
-                        {snapshot.tileCount} tiles / {snapshot.containerCount} containers
+                        {snapshot.tileCount} {t('newcomer', language)} / {snapshot.containerCount} {t('container', language)}
                       </span>
                     </div>
                     <button
@@ -349,7 +377,7 @@ export function SettingsMenu({
                       onClick={() => handleRestoreSnapshot(snapshot.id)}
                       disabled={restoringSnapshotId === snapshot.id}
                     >
-                      {restoringSnapshotId === snapshot.id ? 'Restoring...' : 'Restore'}
+                      {restoringSnapshotId === snapshot.id ? t('restoring', language) : t('restore', language)}
                     </button>
                   </li>
                 ))}

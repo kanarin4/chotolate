@@ -4,7 +4,15 @@ import {
   type FormEvent,
   type PointerEvent as ReactPointerEvent,
 } from 'react'
-import { FatigueState, TileType, type FatigueState as FatigueStateValue, type Tile, type TileType as TileTypeValue } from '../../types'
+import {
+  FatigueState,
+  TileType,
+  type FatigueState as FatigueStateValue,
+  type Tile,
+  type TileType as TileTypeValue,
+  type Language,
+} from '../../types'
+import { t } from '../../utils/i18n'
 import { debugLog } from '../../utils/debug'
 import styles from './Modal.module.css'
 
@@ -33,10 +41,11 @@ type TileInfoModalProps = {
   onCreateTile: (payload: CreateTileInput) => void
   onSaveTile: (payload: SaveTileInput) => void
   onDeleteTile: (tileId: string) => void
+  language: Language
 }
 
-const formatTileTypeLabel = (tileType: TileTypeValue): string =>
-  tileType === TileType.STAFF ? 'Staff' : 'Newcomer'
+const formatTileTypeLabel = (tileType: TileTypeValue, lang: Language): string =>
+  tileType === TileType.STAFF ? t('staff', lang) : t('newcomer', lang)
 
 export function TileInfoModal({
   mode,
@@ -48,6 +57,7 @@ export function TileInfoModal({
   onCreateTile,
   onSaveTile,
   onDeleteTile,
+  language,
 }: TileInfoModalProps) {
   const [name, setName] = useState(() =>
     mode === 'edit' && tile ? tile.name : defaultCreateName,
@@ -73,8 +83,12 @@ export function TileInfoModal({
 
   const title =
     mode === 'create'
-      ? `Create ${formatTileTypeLabel(effectiveTileType)} Tile`
-      : `Edit ${tile?.name ?? 'Tile'}`
+      ? language === 'en'
+        ? `Create ${formatTileTypeLabel(effectiveTileType, language)} Tile`
+        : `${formatTileTypeLabel(effectiveTileType, language)}タイルの作成`
+      : language === 'en'
+        ? `Edit ${tile?.name ?? 'Tile'}`
+        : `${tile?.name ?? 'タイル'}の編集`
 
   const handleBackdropPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (event.target === event.currentTarget) {
@@ -132,72 +146,91 @@ export function TileInfoModal({
     onDeleteTile(tile.id)
   }
 
+  const closeLabel = language === 'en' ? 'Close modal' : '閉じる'
+  const nameLabel = language === 'en' ? 'Name' : '名前'
+  const typeLabel = language === 'en' ? 'Type' : 'タイプ'
+  const fatigueLabel = language === 'en' ? 'Fatigue' : '疲労度'
+  const notesLabel = language === 'en' ? 'Notes' : 'メモ'
+  const zoneLabelLabel = language === 'en' ? 'Current Zone' : '現在の場所'
+  const createdLabel = language === 'en' ? 'Created' : '作成日'
+  const deleteLabel = language === 'en' ? 'Delete' : '削除'
+  const cancelLabel = language === 'en' ? 'Cancel' : 'キャンセル'
+  const createButtonLabel = language === 'en' ? 'Create' : '作成'
+  const saveButtonLabel = language === 'en' ? 'Save' : '保存'
+  const enterNamePlaceholder = language === 'en' ? 'Enter a name' : '名前を入力'
+  const optionalNotesPlaceholder = language === 'en' ? 'Optional notes' : 'メモ（任意）'
+  const unknownZoneLabel = language === 'en' ? 'Unknown zone' : '不明な場所'
+
+  const greenLabel = language === 'en' ? 'Green' : '緑'
+  const yellowLabel = language === 'en' ? 'Yellow' : '黄'
+  const redLabel = language === 'en' ? 'Red' : '赤'
+
   return (
     <div className={styles.modalBackdrop} onPointerDown={handleBackdropPointerDown}>
       <section className={styles.modalCard} aria-modal="true" role="dialog" aria-label={title}>
         <header className={styles.modalHeader}>
           <h2 className={styles.modalTitle}>{title}</h2>
-          <button type="button" className={styles.closeButton} onClick={onClose} aria-label="Close modal">
+          <button type="button" className={styles.closeButton} onClick={onClose} aria-label={closeLabel}>
             x
           </button>
         </header>
 
         <form className={styles.modalBody} onSubmit={handleSubmit}>
           <label className={styles.field}>
-            <span className={styles.fieldLabel}>Name</span>
+            <span className={styles.fieldLabel}>{nameLabel}</span>
             <input
               className={styles.input}
               value={name}
               onChange={(event) => setName(event.target.value)}
-              placeholder="Enter a name"
+              placeholder={enterNamePlaceholder}
             />
           </label>
 
           <label className={styles.field}>
-            <span className={styles.fieldLabel}>Type</span>
-            <span className={styles.staticValue}>{formatTileTypeLabel(effectiveTileType)}</span>
+            <span className={styles.fieldLabel}>{typeLabel}</span>
+            <span className={styles.staticValue}>{formatTileTypeLabel(effectiveTileType, language)}</span>
           </label>
 
           {fatigueEnabled ? (
             mode === 'edit' ? (
               <label className={styles.field}>
-                <span className={styles.fieldLabel}>Fatigue</span>
+                <span className={styles.fieldLabel}>{fatigueLabel}</span>
                 <select
                   className={styles.select}
                   value={fatigueState}
                   onChange={(event) => setFatigueState(event.target.value as FatigueStateValue)}
                 >
-                  <option value={FatigueState.GREEN}>Green</option>
-                  <option value={FatigueState.YELLOW}>Yellow</option>
-                  <option value={FatigueState.RED}>Red</option>
+                  <option value={FatigueState.GREEN}>{greenLabel}</option>
+                  <option value={FatigueState.YELLOW}>{yellowLabel}</option>
+                  <option value={FatigueState.RED}>{redLabel}</option>
                 </select>
               </label>
             ) : (
               <label className={styles.field}>
-                <span className={styles.fieldLabel}>Fatigue</span>
-                <span className={styles.staticValue}>Green (default)</span>
+                <span className={styles.fieldLabel}>{fatigueLabel}</span>
+                <span className={styles.staticValue}>{greenLabel} (default)</span>
               </label>
             )
           ) : null}
 
           <label className={styles.field}>
-            <span className={styles.fieldLabel}>Notes</span>
+            <span className={styles.fieldLabel}>{notesLabel}</span>
             <textarea
               className={styles.textarea}
               value={notes}
               onChange={(event) => setNotes(event.target.value)}
-              placeholder="Optional notes"
+              placeholder={optionalNotesPlaceholder}
             />
           </label>
 
           {mode === 'edit' && tile ? (
             <>
               <label className={styles.field}>
-                <span className={styles.fieldLabel}>Current Zone</span>
-                <span className={styles.staticValue}>{currentZoneLabel ?? 'Unknown zone'}</span>
+                <span className={styles.fieldLabel}>{zoneLabelLabel}</span>
+                <span className={styles.staticValue}>{currentZoneLabel ?? unknownZoneLabel}</span>
               </label>
               <label className={styles.field}>
-                <span className={styles.fieldLabel}>Created</span>
+                <span className={styles.fieldLabel}>{createdLabel}</span>
                 <span className={styles.staticValue}>{new Date(tile.createdAt).toLocaleString()}</span>
               </label>
             </>
@@ -206,14 +239,14 @@ export function TileInfoModal({
           <footer className={styles.actions}>
             {mode === 'edit' && tile ? (
               <button type="button" className={`${styles.actionButton} ${styles.deleteButton}`} onClick={handleDelete}>
-                Delete
+                {deleteLabel}
               </button>
             ) : null}
             <button type="button" className={styles.actionButton} onClick={onClose}>
-              Cancel
+              {cancelLabel}
             </button>
             <button type="submit" className={styles.actionButton}>
-              {mode === 'create' ? 'Create' : 'Save'}
+              {mode === 'create' ? createButtonLabel : saveButtonLabel}
             </button>
           </footer>
         </form>

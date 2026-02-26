@@ -1,4 +1,5 @@
-import { TileType, type Tile as TileModel, type TileType as TileTypeValue } from '../../types'
+import { t } from '../../utils/i18n'
+import { TileType, type Tile as TileModel, type TileType as TileTypeValue, type Language } from '../../types'
 import { debugLog } from '../../utils/debug'
 import { Tile } from '../Tile/Tile'
 import { BankContainer } from './BankContainer'
@@ -16,6 +17,7 @@ type CompletedBankProps = {
   onTileNameCommit?: (tileId: string, nextName: string) => void
   onTileSelect?: (tileId: string, additive: boolean) => void
   onClose?: () => void
+  language: Language
 }
 
 export function CompletedBank({
@@ -30,6 +32,7 @@ export function CompletedBank({
   onTileNameCommit,
   onTileSelect,
   onClose,
+  language,
 }: CompletedBankProps) {
   const canAcceptDrop = activeTileType === null || activeTileType === TileType.NEWCOMER
 
@@ -43,14 +46,16 @@ export function CompletedBank({
   return (
     <BankContainer
       zoneId={zoneId}
-      title="Completed"
+      title={t('completed_bank', language)}
       count={tiles.length}
       orientation="horizontal"
       canAcceptDrop={canAcceptDrop}
       onClose={onClose}
     >
       {tiles.length === 0 ? (
-        <div className={styles.emptyBank}>No completed newcomers yet.</div>
+        <div className={styles.emptyBank}>
+          {language === 'en' ? 'No completed newcomers yet.' : '完了した新入寮生はまだいません。'}
+        </div>
       ) : (
         tiles.map((tile) => (
           <Tile

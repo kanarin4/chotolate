@@ -1,5 +1,6 @@
-import type { BoardMode, TileType } from '../../types'
+import type { BoardMode, TileType, Language } from '../../types'
 import type { NameTemplateType, NameTemplates } from '../../types'
+import { t } from '../../utils/i18n'
 import type { BoardSnapshotSummary } from '../../utils/storage'
 import { CreateButtons } from './CreateButtons'
 import { ModeToggle } from './ModeToggle'
@@ -42,6 +43,8 @@ type ToolbarProps = {
   isNewcomerDrawerOpen: boolean
   onToggleNewcomerDrawer: () => void
   newcomerBankTileCount: number
+  language: Language
+  onLanguageChange: (language: Language) => void
 }
 
 export function Toolbar({
@@ -78,6 +81,8 @@ export function Toolbar({
   isNewcomerDrawerOpen,
   onToggleNewcomerDrawer,
   newcomerBankTileCount,
+  language,
+  onLanguageChange,
 }: ToolbarProps) {
   return (
     <section className={styles.toolbar}>
@@ -91,34 +96,36 @@ export function Toolbar({
             type="button"
             className={`${styles.toolbarButton} ${isStaffDrawerOpen ? styles.toolbarButtonActive : ''}`}
             onClick={onToggleStaffDrawer}
-            title="Staff Bank"
+            title={t('staff_bank', language)}
           >
-            <span className={styles.buttonLabel}>Staff</span>
+            <span className={styles.buttonLabel}>{t('staff', language)}</span>
             <span className={styles.buttonBadge}>{staffBankTileCount}</span>
           </button>
           <button
             type="button"
             className={`${styles.toolbarButton} ${isNewcomerDrawerOpen ? styles.toolbarButtonActive : ''}`}
             onClick={onToggleNewcomerDrawer}
-            title="Newcomer Bank"
+            title={t('newcomer_bank', language)}
           >
-            <span className={styles.buttonLabel}>Newcomer</span>
+            <span className={styles.buttonLabel}>{t('newcomer', language)}</span>
             <span className={styles.buttonBadge}>{newcomerBankTileCount}</span>
           </button>
         </div>
-        <SearchBar query={searchQuery} onChange={onSearchQueryChange} />
+        <SearchBar query={searchQuery} onChange={onSearchQueryChange} language={language} />
         {selectedCount > 0 ? (
           <div className={styles.selectionSummary}>
-            <span className={styles.selectionCount}>Selected: {selectedCount}</span>
+            <span className={styles.selectionCount}>
+              {language === 'en' ? `Selected: ${selectedCount}` : `選択中: ${selectedCount}`}
+            </span>
             <button type="button" className={styles.searchClearButton} onClick={onClearSelection}>
-              Clear selection
+              {language === 'en' ? 'Clear selection' : '選択を解除'}
             </button>
           </div>
         ) : null}
       </div>
 
       <div className={styles.toolbarMiddle}>
-        <ModeToggle mode={mode} onModeChange={onModeChange} />
+        <ModeToggle mode={mode} onModeChange={onModeChange} language={language} />
       </div>
 
       <div className={styles.toolbarRight}>
@@ -143,12 +150,15 @@ export function Toolbar({
           onRefreshSnapshots={onRefreshSnapshots}
           onRestoreSnapshot={onRestoreSnapshot}
           onCaptureSnapshot={onCaptureSnapshot}
+          language={language}
+          onLanguageChange={onLanguageChange}
         />
         {mode === 'setup' ? (
           <CreateButtons
             onCreateStaff={onCreateStaff}
             onCreateNewcomer={onCreateNewcomer}
             onCreateContainer={onCreateContainer}
+            language={language}
           />
         ) : null}
       </div>
