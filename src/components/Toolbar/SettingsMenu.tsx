@@ -23,6 +23,7 @@ type SettingsMenuProps = {
   onRefreshSnapshots: () => Promise<void> | void
   onRestoreSnapshot: (snapshotId: string) => Promise<void> | void
   onCaptureSnapshot: () => Promise<void> | void
+  onClearSnapshots: () => Promise<void> | void
   language: Language
   onLanguageChange: (language: Language) => void
 }
@@ -40,6 +41,7 @@ export function SettingsMenu({
   onRefreshSnapshots,
   onRestoreSnapshot,
   onCaptureSnapshot,
+  onClearSnapshots,
   language,
   onLanguageChange,
 }: SettingsMenuProps) {
@@ -50,6 +52,7 @@ export function SettingsMenu({
   const [newcomerAddedCount, setNewcomerAddedCount] = useState(0)
   const [isRefreshingSnapshots, setIsRefreshingSnapshots] = useState(false)
   const [isCapturingSnapshot, setIsCapturingSnapshot] = useState(false)
+  const [isClearingSnapshots, setIsClearingSnapshots] = useState(false)
   const [restoringSnapshotId, setRestoringSnapshotId] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const csvFileInputRef = useRef<HTMLInputElement | null>(null)
@@ -164,6 +167,19 @@ export function SettingsMenu({
     setRestoringSnapshotId(snapshotId)
     Promise.resolve(onRestoreSnapshot(snapshotId)).finally(() => {
       setRestoringSnapshotId((currentId) => (currentId === snapshotId ? null : currentId))
+    })
+  }
+
+  const handleClearSnapshots = () => {
+    const confirmed = window.confirm(t('clear_history_confirm', language))
+    if (!confirmed) {
+      return
+    }
+
+    setIsClearingSnapshots(true)
+    Promise.resolve(onClearSnapshots()).finally(() => {
+      setIsClearingSnapshots(false)
+      void onRefreshSnapshots()
     })
   }
 
@@ -354,6 +370,14 @@ export function SettingsMenu({
                   disabled={isRefreshingSnapshots}
                 >
                   {isRefreshingSnapshots ? t('refreshing', language) : t('refresh', language)}
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.settingsActionButton} ${styles.dangerButton}`}
+                  onClick={handleClearSnapshots}
+                  disabled={isClearingSnapshots || snapshots.length === 0}
+                >
+                  {isClearingSnapshots ? t('refreshing', language) : t('clear_history', language)}
                 </button>
               </div>
             </div>

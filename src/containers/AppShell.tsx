@@ -159,6 +159,7 @@ export function AppShell() {
   const setMode = useAppStore((state) => state.setMode)
   const setNameTemplate = useAppStore((state) => state.setNameTemplate)
   const setLanguage = useAppStore((state) => state.setLanguage)
+  const clearSnapshots = useAppStore((state) => state.clearSnapshots)
 
   const containers = useAppStore(selectContainers)
   const tilesByZone = useAppStore(selectTilesByZone)
@@ -1018,6 +1019,7 @@ export function AppShell() {
             onRefreshSnapshots={refreshSnapshots}
             onRestoreSnapshot={handleRestoreSnapshot}
             onCaptureSnapshot={handleCaptureSnapshot}
+            onClearSnapshots={clearSnapshots}
             onCreateStaff={() => handleOpenCreateTileModal(TileType.STAFF)}
             onCreateNewcomer={() => handleOpenCreateTileModal(TileType.NEWCOMER)}
             onCreateContainer={handleCreateContainer}

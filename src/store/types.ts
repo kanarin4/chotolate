@@ -63,6 +63,7 @@ export interface BoardSlice {
   moveTile: (id: string, targetZoneId: string) => void
   cycleHouse: (id: string) => void
   setHouse: (id: string, house: House) => void
+  clearSnapshots: () => Promise<void>
 }
 
 export interface UISlice {

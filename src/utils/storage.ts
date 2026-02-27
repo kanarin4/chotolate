@@ -247,6 +247,33 @@ export async function saveBoardSnapshot(
   }
 }
 
+export async function clearAllSnapshots(): Promise<void> {
+  if (!canAccessIndexedDb()) {
+    return
+  }
+
+  return new Promise((resolve, reject) => {
+    const request = window.indexedDB.deleteDatabase(STORAGE_CONSTANTS.SNAPSHOT_DB_NAME)
+
+    request.onsuccess = () => {
+      debugLog('storage/snapshot-db-deleted')
+      resolve()
+    }
+
+    request.onerror = () => {
+      debugLog('storage/snapshot-db-delete-failed', request.error)
+      reject(request.error ?? new Error('Failed to delete snapshot database'))
+    }
+
+    request.onblocked = () => {
+      debugLog('storage/snapshot-db-delete-blocked')
+      // If blocked, we might want to alert the user or just resolve eventually
+      // but choosing to resolve to allow the UI to continue
+      resolve()
+    }
+  })
+}
+
 export async function listBoardSnapshots(limit = 20): Promise<BoardSnapshotSummary[]> {
   if (!canAccessIndexedDb()) {
     return []

@@ -45,6 +45,8 @@ export type TranslationKey =
     | 'turmeric'
     | 'rosemary'
     | 'basil'
+    | 'clear_history'
+    | 'clear_history_confirm'
 
 const translations: Record<Language, Record<TranslationKey, string>> = {
     en: {
@@ -92,6 +94,8 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
         turmeric: 'Turmeric',
         rosemary: 'Rosemary',
         basil: 'Basil',
+        clear_history: 'Clear History',
+        clear_history_confirm: 'Are you sure you want to remove all past auto-saves and reset the current board? Everything will be lost.',
     },
     jp: {
         settings: '設定',
@@ -138,6 +142,8 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
         turmeric: 'ターメリック',
         rosemary: 'ローズマリー',
         basil: 'バジル',
+        clear_history: '履歴を消去',
+        clear_history_confirm: 'すべての過去の自動保存を削除し、現在のボードをリセットしてもよろしいですか？すべてのデータが失われます。',
     },
 }
 

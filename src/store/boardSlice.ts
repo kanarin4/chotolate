@@ -13,6 +13,7 @@ import {
 import { debugLog } from '../utils/debug'
 import { calculateContainerMinSize } from '../utils/containerSizing'
 import { LAYOUT_CONSTANTS } from '../utils/constants'
+import { clearAllSnapshots } from '../utils/storage'
 import type {
   AppStore,
   BoardSlice,
@@ -710,5 +711,11 @@ export const createBoardSlice: StateCreator<AppStore, [], [], BoardSlice> = (set
         },
       }
     })
+  },
+
+  clearSnapshots: async () => {
+    await clearAllSnapshots()
+    set(createInitialBoardState())
+    debugLog('boardSlice/snapshots-cleared-and-board-reset')
   },
 })

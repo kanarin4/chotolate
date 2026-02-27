@@ -34,6 +34,7 @@ type ToolbarProps = {
   onRefreshSnapshots: () => Promise<void> | void
   onRestoreSnapshot: (snapshotId: string) => Promise<void> | void
   onCaptureSnapshot: () => Promise<void> | void
+  onClearSnapshots: () => Promise<void> | void
   onCreateStaff: () => void
   onCreateNewcomer: () => void
   onCreateContainer: () => void
@@ -72,6 +73,7 @@ export function Toolbar({
   onRefreshSnapshots,
   onRestoreSnapshot,
   onCaptureSnapshot,
+  onClearSnapshots,
   onCreateStaff,
   onCreateNewcomer,
   onCreateContainer,
@@ -150,6 +152,7 @@ export function Toolbar({
           onRefreshSnapshots={onRefreshSnapshots}
           onRestoreSnapshot={onRestoreSnapshot}
           onCaptureSnapshot={onCaptureSnapshot}
+          onClearSnapshots={onClearSnapshots}
           language={language}
           onLanguageChange={onLanguageChange}
         />
