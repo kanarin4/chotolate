@@ -90,6 +90,12 @@ const isValidHouse = (value: string): value is Tile['house'] => {
   )
 }
 
+const getLegacyHouseValue = (tile: Tile): string => {
+  const legacyTile = tile as Tile & { fatigueState?: unknown }
+
+  return typeof legacyTile.fatigueState === 'string' ? legacyTile.fatigueState : ''
+}
+
 const canTileEnterBank = (tileType: Tile['tileType'], bankType: BankType): boolean => {
   if (tileType === TileType.STAFF) {
     return bankType === BankType.STAFF
@@ -166,7 +172,7 @@ const normalizePersistedBoardState = (
         currentZoneId = fallbackZoneId
       }
 
-      const houseRaw = (tile.house || (tile as any).fatigueState || '').toLowerCase()
+      const houseRaw = (tile.house || getLegacyHouseValue(tile) || '').toLowerCase()
       const normalizedHouse: Tile['house'] = isValidHouse(houseRaw)
         ? houseRaw
         : House.GREEN

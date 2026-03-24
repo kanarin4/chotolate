@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 import { CompletedBank } from '../components/Bank/CompletedBank'
 import { NewcomerBank } from '../components/Bank/NewcomerBank'
@@ -170,6 +170,7 @@ export function AppShell() {
 
   const boardViewportRef = useRef<HTMLDivElement | null>(null)
   const previousZoomRef = useRef<number>(UI_CONSTANTS.BOARD_ZOOM_DEFAULT)
+  const pendingZoomAnchorRef = useRef<{ x: number; y: number } | null>(null)
   const [editingContainerId, setEditingContainerId] = useState<string | null>(null)
   const [boardZoom, setBoardZoom] = useState<number>(() => {
     // Mobile-aware default zoom
@@ -292,22 +293,34 @@ export function AppShell() {
     }
   }, [])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const viewport = boardViewportRef.current
     const previousZoom = previousZoomRef.current
+    const pendingZoomAnchor = pendingZoomAnchorRef.current
 
     if (!viewport || previousZoom === boardZoom) {
       previousZoomRef.current = boardZoom
+      pendingZoomAnchorRef.current = null
       return
     }
 
-    const centerWorldX = (viewport.scrollLeft + viewport.clientWidth / 2) / previousZoom
-    const centerWorldY = (viewport.scrollTop + viewport.clientHeight / 2) / previousZoom
+    // Preserve the gesture focus point while zooming inside the board viewport.
+    if (pendingZoomAnchor) {
+      const anchorWorldX = (viewport.scrollLeft + pendingZoomAnchor.x) / previousZoom
+      const anchorWorldY = (viewport.scrollTop + pendingZoomAnchor.y) / previousZoom
 
-    viewport.scrollLeft = Math.max(0, centerWorldX * boardZoom - viewport.clientWidth / 2)
-    viewport.scrollTop = Math.max(0, centerWorldY * boardZoom - viewport.clientHeight / 2)
+      viewport.scrollLeft = Math.max(0, anchorWorldX * boardZoom - pendingZoomAnchor.x)
+      viewport.scrollTop = Math.max(0, anchorWorldY * boardZoom - pendingZoomAnchor.y)
+    } else {
+      const centerWorldX = (viewport.scrollLeft + viewport.clientWidth / 2) / previousZoom
+      const centerWorldY = (viewport.scrollTop + viewport.clientHeight / 2) / previousZoom
+
+      viewport.scrollLeft = Math.max(0, centerWorldX * boardZoom - viewport.clientWidth / 2)
+      viewport.scrollTop = Math.max(0, centerWorldY * boardZoom - viewport.clientHeight / 2)
+    }
 
     previousZoomRef.current = boardZoom
+    pendingZoomAnchorRef.current = null
   }, [boardZoom])
 
   useEffect(() => {
@@ -771,17 +784,73 @@ export function AppShell() {
     [loadBoard, refreshSnapshots, snapshots],
   )
 
+  const updateBoardZoom = useCallback(
+    (nextZoom: number, anchor?: { x: number; y: number }) => {
+      const clampedZoom = clampZoom(roundZoom(nextZoom))
+
+      pendingZoomAnchorRef.current = anchor ?? null
+
+      setBoardZoom((previousZoom) => {
+        if (previousZoom === clampedZoom) {
+          pendingZoomAnchorRef.current = null
+          return previousZoom
+        }
+
+        return clampedZoom
+      })
+
+      debugLog('AppShell/update-board-zoom', {
+        previousZoom: previousZoomRef.current,
+        nextZoom: clampedZoom,
+        anchor,
+      })
+    },
+    [],
+  )
+
+  const scaleBoardZoom = useCallback(
+    (scaleFactor: number, anchor?: { x: number; y: number }) => {
+      pendingZoomAnchorRef.current = anchor ?? null
+
+      setBoardZoom((previousZoom) => {
+        const nextZoom = clampZoom(roundZoom(previousZoom * scaleFactor))
+
+        if (previousZoom === nextZoom) {
+          pendingZoomAnchorRef.current = null
+          return previousZoom
+        }
+
+        debugLog('AppShell/scale-board-zoom', {
+          previousZoom,
+          nextZoom,
+          scaleFactor,
+          anchor,
+        })
+
+        return nextZoom
+      })
+    },
+    [],
+  )
+
   const handleZoomIn = useCallback(() => {
-    setBoardZoom((previous) => clampZoom(roundZoom(previous + UI_CONSTANTS.BOARD_ZOOM_STEP)))
-  }, [])
+    updateBoardZoom(boardZoom + UI_CONSTANTS.BOARD_ZOOM_STEP)
+  }, [boardZoom, updateBoardZoom])
 
   const handleZoomOut = useCallback(() => {
-    setBoardZoom((previous) => clampZoom(roundZoom(previous - UI_CONSTANTS.BOARD_ZOOM_STEP)))
-  }, [])
+    updateBoardZoom(boardZoom - UI_CONSTANTS.BOARD_ZOOM_STEP)
+  }, [boardZoom, updateBoardZoom])
 
   const handleZoomReset = useCallback(() => {
-    setBoardZoom(UI_CONSTANTS.BOARD_ZOOM_DEFAULT)
-  }, [])
+    updateBoardZoom(UI_CONSTANTS.BOARD_ZOOM_DEFAULT)
+  }, [updateBoardZoom])
+
+  const handleTrackpadZoom = useCallback(
+    (scaleFactor: number, anchor: { x: number; y: number }) => {
+      scaleBoardZoom(scaleFactor, anchor)
+    },
+    [scaleBoardZoom],
+  )
 
   const handleToggleStaffDrawer = useCallback(() => {
     setIsNewcomerDrawerOpen(false)
@@ -1041,6 +1110,7 @@ export function AppShell() {
             isEmpty={containers.length === 0}
             emptyLabel={language === 'en' ? 'No containers yet' : 'コンテナがまだありません'}
             onBackgroundPointerDown={handleBoardBackgroundPointerDown}
+            onTrackpadZoom={handleTrackpadZoom}
           >
             {containers.map((container) => (
               <Container
