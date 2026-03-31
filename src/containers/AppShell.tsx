@@ -442,56 +442,6 @@ export function AppShell() {
     }
   }, [clearTileSelection])
 
-  useEffect(() => {
-    const isTextInputTarget = (target: EventTarget | null): target is HTMLElement => {
-      if (!(target instanceof HTMLElement)) {
-        return false
-      }
-      const tag = target.tagName
-      return (
-        tag === 'INPUT' ||
-        tag === 'TEXTAREA' ||
-        tag === 'SELECT' ||
-        target.isContentEditable
-      )
-    }
-
-    const handleHotkeys = (event: KeyboardEvent) => {
-      if (event.isComposing) {
-        return
-      }
-
-      if (event.altKey || event.metaKey || event.ctrlKey) {
-        return
-      }
-
-      if (isTextInputTarget(event.target)) {
-        return
-      }
-
-      if (modalState) {
-        return
-      }
-
-      const key = event.key.toLowerCase()
-      if (key === 's') {
-        event.preventDefault()
-        handleOpenCreateTileModal(TileType.STAFF)
-      } else if (key === 'n') {
-        event.preventDefault()
-        handleOpenCreateTileModal(TileType.NEWCOMER)
-      } else if (key === 'c') {
-        event.preventDefault()
-        handleCreateContainer()
-      }
-    }
-
-    window.addEventListener('keydown', handleHotkeys)
-    return () => {
-      window.removeEventListener('keydown', handleHotkeys)
-    }
-  }, [handleCreateContainer, handleOpenCreateTileModal, modalState])
-
   const handleNameTemplateChange = useCallback(
     (templateType: NameTemplateType, value: string) => {
       setNameTemplate(templateType, value)
@@ -969,6 +919,56 @@ export function AppShell() {
     },
     [clearTileSelection, getDefaultTileName, openModal],
   )
+
+  useEffect(() => {
+    const isTextInputTarget = (target: EventTarget | null): target is HTMLElement => {
+      if (!(target instanceof HTMLElement)) {
+        return false
+      }
+      const tag = target.tagName
+      return (
+        tag === 'INPUT' ||
+        tag === 'TEXTAREA' ||
+        tag === 'SELECT' ||
+        target.isContentEditable
+      )
+    }
+
+    const handleHotkeys = (event: KeyboardEvent) => {
+      if (event.isComposing) {
+        return
+      }
+
+      if (event.altKey || event.metaKey || event.ctrlKey) {
+        return
+      }
+
+      if (isTextInputTarget(event.target)) {
+        return
+      }
+
+      if (modalState) {
+        return
+      }
+
+      const key = event.key.toLowerCase()
+      if (key === 's') {
+        event.preventDefault()
+        handleOpenCreateTileModal(TileType.STAFF)
+      } else if (key === 'n') {
+        event.preventDefault()
+        handleOpenCreateTileModal(TileType.NEWCOMER)
+      } else if (key === 'c') {
+        event.preventDefault()
+        handleCreateContainer()
+      }
+    }
+
+    window.addEventListener('keydown', handleHotkeys)
+    return () => {
+      window.removeEventListener('keydown', handleHotkeys)
+    }
+  }, [handleCreateContainer, handleOpenCreateTileModal, modalState])
 
   const handleOpenTileInfo = useCallback(
     (tileId: string) => {
