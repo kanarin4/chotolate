@@ -262,6 +262,28 @@ export function AppShell() {
     return overlappingIds
   }, [containers])
 
+  const clampBoardViewportToContent = useCallback(() => {
+    const viewport = boardViewportRef.current
+    if (!viewport) {
+      return
+    }
+
+    const maxScrollLeft = Math.max(0, viewport.scrollWidth - viewport.clientWidth)
+    const maxScrollTop = Math.max(0, viewport.scrollHeight - viewport.clientHeight)
+
+    if (viewport.scrollLeft > maxScrollLeft) {
+      viewport.scrollLeft = maxScrollLeft
+    } else if (viewport.scrollLeft < 0) {
+      viewport.scrollLeft = 0
+    }
+
+    if (viewport.scrollTop > maxScrollTop) {
+      viewport.scrollTop = maxScrollTop
+    } else if (viewport.scrollTop < 0) {
+      viewport.scrollTop = 0
+    }
+  }, [])
+
   const infoTile = modalState?.type === 'tile_info' ? tilesRecord[modalState.entityId] ?? null : null
   const createTileType = modalState?.type === 'tile_create' ? modalState.tileType : null
   const tileModalMode = modalState?.type === 'tile_create' ? 'create' : 'edit'
@@ -322,6 +344,22 @@ export function AppShell() {
     previousZoomRef.current = boardZoom
     pendingZoomAnchorRef.current = null
   }, [boardZoom])
+
+  useLayoutEffect(() => {
+    clampBoardViewportToContent()
+  }, [boardCanvasSize.height, boardCanvasSize.width, boardZoom, clampBoardViewportToContent])
+
+  useEffect(() => {
+    const handleResize = () => {
+      clampBoardViewportToContent()
+    }
+
+    window.addEventListener('resize', handleResize)
+
+    return () => {
+      window.removeEventListener('resize', handleResize)
+    }
+  }, [clampBoardViewportToContent])
 
   useEffect(() => {
     debugLog('AppShell/render', {
@@ -403,6 +441,56 @@ export function AppShell() {
       window.removeEventListener('keydown', handleKeyDown)
     }
   }, [clearTileSelection])
+
+  useEffect(() => {
+    const isTextInputTarget = (target: EventTarget | null): target is HTMLElement => {
+      if (!(target instanceof HTMLElement)) {
+        return false
+      }
+      const tag = target.tagName
+      return (
+        tag === 'INPUT' ||
+        tag === 'TEXTAREA' ||
+        tag === 'SELECT' ||
+        target.isContentEditable
+      )
+    }
+
+    const handleHotkeys = (event: KeyboardEvent) => {
+      if (event.isComposing) {
+        return
+      }
+
+      if (event.altKey || event.metaKey || event.ctrlKey) {
+        return
+      }
+
+      if (isTextInputTarget(event.target)) {
+        return
+      }
+
+      if (modalState) {
+        return
+      }
+
+      const key = event.key.toLowerCase()
+      if (key === 's') {
+        event.preventDefault()
+        handleOpenCreateTileModal(TileType.STAFF)
+      } else if (key === 'n') {
+        event.preventDefault()
+        handleOpenCreateTileModal(TileType.NEWCOMER)
+      } else if (key === 'c') {
+        event.preventDefault()
+        handleCreateContainer()
+      }
+    }
+
+    window.addEventListener('keydown', handleHotkeys)
+    return () => {
+      window.removeEventListener('keydown', handleHotkeys)
+    }
+  }, [handleCreateContainer, handleOpenCreateTileModal, modalState])
 
   const handleNameTemplateChange = useCallback(
     (templateType: NameTemplateType, value: string) => {
@@ -905,6 +993,7 @@ export function AppShell() {
       name: string
       notes: string
       tileType: TileTypeValue
+      house: Tile['house']
     }) => {
       const id = createTile(payload)
 
@@ -912,6 +1001,7 @@ export function AppShell() {
         createdTileId: id,
         tileType: payload.tileType,
         name: payload.name,
+        house: payload.house,
       })
 
       closeModal()

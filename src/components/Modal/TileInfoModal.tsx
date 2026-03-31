@@ -22,6 +22,7 @@ type CreateTileInput = {
   name: string
   notes: string
   tileType: TileTypeValue
+  house: HouseValue
 }
 
 type SaveTileInput = {
@@ -110,11 +111,13 @@ export function TileInfoModal({
       debugLog('TileInfoModal/create-submit', {
         tileType: effectiveTileType,
         name: trimmedName,
+        house,
       })
       onCreateTile({
         name: trimmedName,
         notes,
         tileType: effectiveTileType,
+        house: houseEnabled ? house : House.GREEN,
       })
       return
     }
@@ -193,26 +196,19 @@ export function TileInfoModal({
           </label>
 
           {houseEnabled ? (
-            mode === 'edit' ? (
-              <label className={styles.field}>
-                <span className={styles.fieldLabel}>{houseLabel}</span>
-                <select
-                  className={styles.select}
-                  value={house}
-                  onChange={(event) => setHouse(event.target.value as HouseValue)}
-                >
-                  <option value={House.RED}>{paprikaLabel}</option>
-                  <option value={House.YELLOW}>{turmericLabel}</option>
-                  <option value={House.BLUE}>{rosemaryLabel}</option>
-                  <option value={House.GREEN}>{basilLabel}</option>
-                </select>
-              </label>
-            ) : (
-              <label className={styles.field}>
-                <span className={styles.fieldLabel}>{houseLabel}</span>
-                <span className={styles.staticValue}>{basilLabel} (default)</span>
-              </label>
-            )
+            <label className={styles.field}>
+              <span className={styles.fieldLabel}>{houseLabel}</span>
+              <select
+                className={styles.select}
+                value={house}
+                onChange={(event) => setHouse(event.target.value as HouseValue)}
+              >
+                <option value={House.RED}>{paprikaLabel}</option>
+                <option value={House.YELLOW}>{turmericLabel}</option>
+                <option value={House.BLUE}>{rosemaryLabel}</option>
+                <option value={House.GREEN}>{basilLabel}</option>
+              </select>
+            </label>
           ) : null}
 
           <label className={styles.field}>

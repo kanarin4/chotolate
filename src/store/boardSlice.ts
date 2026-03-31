@@ -461,7 +461,7 @@ export const createBoardSlice: StateCreator<AppStore, [], [], BoardSlice> = (set
       currentZoneId: targetZoneId,
       name: payload.name,
       tileType: payload.tileType,
-      house: House.GREEN,
+      house: payload.house ?? House.GREEN,
       notes: payload.notes ?? '',
       orderIndex: getMaxOrderForZone(tiles, targetZoneId) + 1,
       createdAt: timestamp,

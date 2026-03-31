@@ -139,6 +139,17 @@ export function ContainerHeader({
 
           {isEditMenuOpen ? (
             <div className={styles.editMenuPanel}>
+              <button
+                type="button"
+                className={styles.editMenuItemButton}
+                onClick={() => {
+                  setIsEditMenuOpen(false)
+                  onStartEditName()
+                }}
+              >
+                Rename
+              </button>
+
               <label className={styles.editMenuItem}>
                 <input
                   type="checkbox"

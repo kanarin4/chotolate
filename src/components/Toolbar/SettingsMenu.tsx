@@ -116,7 +116,7 @@ export function SettingsMenu({
     event: KeyboardEvent<HTMLInputElement>,
     tileType: TileTypeValue,
   ) => {
-    if (event.key !== 'Tab' && event.key !== 'Enter') {
+    if (event.key !== 'Tab') {
       return
     }
 

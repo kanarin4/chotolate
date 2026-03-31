@@ -29,6 +29,7 @@ export interface CreateTileInput {
   name: string
   tileType: TileType
   notes?: string
+  house?: House
 }
 
 export interface CreateContainerInput {
